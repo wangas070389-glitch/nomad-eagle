@@ -20,19 +20,19 @@ export default async function DashboardLayout({
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <nav className="border-b bg-white px-6 py-4 flex justify-between items-center">
+            <nav className="border-b border-gray-200 bg-white px-6 py-4 flex justify-between items-center sticky top-0 z-50">
 
                 <div className="flex items-center gap-8">
-                    <Link href="/" className="flex items-center gap-2 text-xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent group">
-                        <LayoutGrid className="h-6 w-6 text-slate-800 dark:text-slate-100" />
+                    <Link href="/" className="flex items-center gap-2 text-xl font-bold text-violet-600 group hover:opacity-90 transition-opacity">
+                        <LayoutGrid className="h-6 w-6" />
                         <span>Nomad Eagle Systems</span>
-                        <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-slate-300 text-slate-500">v1.1</Badge>
+                        <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-violet-100 bg-violet-50 text-violet-600 hidden sm:inline-flex">v1.1</Badge>
                     </Link>
-                    <div className="flex gap-6 text-sm font-medium text-muted-foreground">
-                        <Link href="/" className="hover:text-primary transition-colors">Dashboard</Link>
-                        <Link href="/plan" className="hover:text-primary transition-colors">Plan</Link>
-                        <Link href="/trips" className="hover:text-primary transition-colors">Trips</Link>
-                        <Link href="/settings" className="hover:text-primary transition-colors">Settings</Link>
+                    <div className="hidden md:flex gap-6 text-sm font-medium text-slate-700">
+                        <Link href="/" className="hover:text-violet-600 transition-colors">Dashboard</Link>
+                        <Link href="/plan" className="hover:text-violet-600 transition-colors">Plan</Link>
+                        <Link href="/trips" className="hover:text-violet-600 transition-colors">Trips</Link>
+                        <Link href="/settings" className="hover:text-violet-600 transition-colors">Settings</Link>
                     </div>
                 </div>
                 <div className="flex gap-4 text-sm text-gray-600 dark:text-gray-300">
