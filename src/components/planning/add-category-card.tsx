@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { createCustomCategory } from "@/server/actions/categories" // Reuse existing action
+import { createCategoryAction } from "@/server/actions/categories" // Reuse existing action
 
 export function AddCategoryCard({ existingCategories }: { existingCategories: any[] }) {
     const [open, setOpen] = useState(false)
@@ -42,7 +42,7 @@ export function AddCategoryCard({ existingCategories }: { existingCategories: an
         formData.append("icon", icon)
         formData.append("type", "EXPENSE") // Default for budget purposes
 
-        const result = await createCustomCategory(null, formData)
+        const result = await createCategoryAction(null, formData)
         setIsPending(false)
 
         if (result?.error) {

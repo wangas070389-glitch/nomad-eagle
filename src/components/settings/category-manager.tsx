@@ -4,12 +4,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { createCustomCategory, archiveCategory } from "@/server/actions/categories"
+import { createCategoryAction, archiveCategory } from "@/server/actions/categories"
 import { useActionState, useState } from "react"
 import { Trash2 } from "lucide-react"
 
 export function CategoryManager({ categories }: { categories: any[] }) {
-    const [state, action, isPending] = useActionState(createCustomCategory, null)
+    const [state, action, isPending] = useActionState(createCategoryAction, null)
 
     // Separate System vs Custom
     const system = categories.filter(c => !c.householdId)

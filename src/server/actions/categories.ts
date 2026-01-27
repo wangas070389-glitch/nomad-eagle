@@ -28,7 +28,7 @@ type ActionState = {
     success?: boolean
 }
 
-export async function createCustomCategory(prevState: ActionState | null, formData: FormData) {
+export async function createCategoryAction(prevState: ActionState | null, formData: FormData) {
     const session = await getServerSession(authOptions)
     if (!session?.user?.householdId) return { error: "Not authenticated" }
 
