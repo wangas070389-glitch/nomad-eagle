@@ -42,7 +42,7 @@ export function AddCategoryCard({ existingCategories }: { existingCategories: an
         formData.append("icon", icon)
         formData.append("type", "EXPENSE") // Default for budget purposes
 
-        const result = await createCustomCategory(formData)
+        const result = await createCustomCategory(null, formData)
         setIsPending(false)
 
         if (result?.error) {
