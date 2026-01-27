@@ -23,7 +23,7 @@ export async function getCategories() {
     return categories
 }
 
-export async function createCustomCategory(formData: FormData) {
+export async function createCustomCategory(prevState: any, formData: FormData) {
     const session = await getServerSession(authOptions)
     if (!session?.user?.householdId) return { error: "Not authenticated" }
 
