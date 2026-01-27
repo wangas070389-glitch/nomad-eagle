@@ -147,8 +147,8 @@ export default async function DashboardPage() {
                 </Card>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 space-y-6">
+            <div className="flex flex-col xl:grid xl:grid-cols-12 gap-6">
+                <div className="w-full xl:col-span-8 space-y-6">
                     <div>
                         <h3 className="text-lg font-medium mb-4">Your Accounts</h3>
                         {accounts.length === 0 ? (
@@ -177,7 +177,7 @@ export default async function DashboardPage() {
                     </div>
                 </div>
 
-                <div className="space-y-6">
+                <div className="w-full xl:col-span-4 space-y-6">
                     <PortfolioSummary summary={portfolio} accounts={accountOptions} />
                     <BudgetProgress />
                 </div>

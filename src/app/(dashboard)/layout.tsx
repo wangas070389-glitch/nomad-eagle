@@ -19,8 +19,8 @@ export default async function DashboardLayout({
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-            <nav className="border-b bg-white dark:bg-gray-800 px-6 py-4 flex justify-between items-center">
+        <div className="min-h-screen bg-gray-50">
+            <nav className="border-b bg-white px-6 py-4 flex justify-between items-center">
 
                 <div className="flex items-center gap-8">
                     <Link href="/" className="flex items-center gap-2 text-xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent group">
