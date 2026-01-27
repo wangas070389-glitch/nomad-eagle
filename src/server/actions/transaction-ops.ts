@@ -28,12 +28,12 @@ export async function deleteTransaction(id: string) {
     // Let's allow anyone in household to delete joint transactions for now (Trust model)
     // But if it's personal, strictly only owner.
 
-    if (tx.account.ownerId && tx.account.ownerId !== session.user.id) {
+    if (tx.account?.ownerId && tx.account.ownerId !== session.user.id) {
         return { error: "You cannot delete transactions from a personal account that is not yours." }
     }
 
     // Joint account check (ensure account belongs to household)
-    if (tx.account.householdId !== session.user.householdId) {
+    if (tx.account?.householdId !== session.user.householdId) {
         return { error: "Unauthorized" }
     }
 
@@ -110,7 +110,7 @@ export async function updateTransaction(id: string, prevState: any, formData: Fo
     if (!oldTx) return { error: "Transaction not found" }
 
     // Auth Checks
-    if (oldTx.account.householdId !== session.user.householdId) return { error: "Unauthorized" }
+    if (oldTx.account?.householdId !== session.user.householdId) return { error: "Unauthorized" }
 
     // If moving to a new account, check access to new account
     if (accountId !== oldTx.accountId) {
