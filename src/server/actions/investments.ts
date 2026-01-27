@@ -78,7 +78,7 @@ export async function refreshPortfolioValues() {
     // In real app: fetch external API
     if (session?.user?.householdId) {
         // Invalidate the cache to force refresh
-        revalidateTag(`portfolio-household-${session.user.householdId}`)
+        // revalidateTag(`portfolio-household-${session.user.householdId}`)
     }
     revalidatePath("/")
     return { success: true }
@@ -169,7 +169,7 @@ export async function deleteInvestment(id: string) {
 
     await prisma.investmentPosition.delete({ where: { id } })
     revalidatePath("/")
-    revalidateTag(`portfolio-household-${session.user.householdId}`)
+    // revalidateTag(`portfolio-household-${session.user.householdId}`)
     return { success: true }
 }
 
@@ -259,7 +259,7 @@ export async function capitalizeInvestment(formData: FormData) {
         })
 
         revalidatePath("/")
-        revalidateTag(`portfolio-household-${session.user.householdId}`)
+        // revalidateTag(`portfolio-household-${session.user.householdId}`)
         return { success: true }
     } catch (e) {
         return { error: "Capitalization failed" }

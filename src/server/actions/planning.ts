@@ -31,7 +31,7 @@ export async function addRecurringFlow(formData: FormData) {
             }
         })
 
-        revalidateTag(`forecast-household-${session.user.householdId}`)
+        // revalidateTag(`forecast-household-${session.user.householdId}`)
         revalidatePath("/plan")
         revalidatePath("/")
         return { success: true }
@@ -73,7 +73,7 @@ export async function updateRecurringFlow(formData: FormData) {
             }
         })
 
-        revalidateTag(`forecast-household-${session.user.householdId}`)
+        // revalidateTag(`forecast-household-${session.user.householdId}`)
         revalidatePath("/plan")
         revalidatePath("/")
         return { success: true }
@@ -95,7 +95,7 @@ export async function deleteRecurringFlow(id: string) {
         where: { id }
     })
 
-    revalidateTag(`forecast-household-${session.user.householdId}`)
+    // revalidateTag(`forecast-household-${session.user.householdId}`)
     revalidatePath("/plan")
     revalidatePath("/")
 }
@@ -137,7 +137,7 @@ export async function setBudgetLimit(formData: FormData) {
             })
         }
 
-        revalidateTag(`forecast-household-${session.user.householdId}`)
+        // revalidateTag(`forecast-household-${session.user.householdId}`)
         revalidatePath("/plan")
         revalidatePath("/")
         return { success: true }
@@ -155,7 +155,7 @@ export async function toggleFlowActive(id: string, isActive: boolean) {
             where: { id },
             data: { isActive }
         })
-        revalidateTag(`forecast-household-${session.user.householdId}`)
+        // revalidateTag(`forecast-household-${session.user.householdId}`)
         revalidatePath("/plan")
         revalidatePath("/")
         return { success: true }

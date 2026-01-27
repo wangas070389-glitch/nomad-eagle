@@ -68,7 +68,7 @@ export async function createHousehold(prevState: any, formData: FormData) {
             })
         }
 
-        revalidateTag(`forecast-household-${session.user.householdId}`)
+        // revalidateTag(`forecast-household-${session.user.householdId}`)
         revalidatePath("/plan")
         revalidatePath("/")
         return { success: true }
