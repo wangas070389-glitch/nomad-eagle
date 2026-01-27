@@ -1,0 +1,313 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Currency {
+  MXN
+  USD
+}
+
+enum AccountType {
+  CHECKING
+  SAVINGS
+  INVESTMENT
+  CREDIT_CARD
+  CASH
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+model User {
+  id          String      @id @default(cuid())
+  email       String      @unique
+  name        String?
+  householdId String?
+  household   Household?  @relation(fields: [householdId], references: [id])
+  accounts    Account[]   // Personal accounts owned by this user
+  
+  // Logic: Users see their own accounts AND accounts with ownerId=null (Joint) in their household
+  spentTransactions Transaction[] @relation("SpentBy")
+  ownedHousehold    Household[]   @relation("HouseholdOwner")
+  trips             TripMember[]
+  
+  // Protocol Identity
+  displayName       String?       // e.g. "Captain"
+  avatarUrl         String?       // URL to storage
+  currency          String        @default("MXN") // Preference
+  password          String?       // Hashed Password
+  
+  // Access Control
+  role              UserRole      @default(USER)
+  status            UserStatus    @default(PENDING)
+
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+}
+
+model Household {
+  id        String   @id @default(cuid())
+  name      String
+  inviteCode String?  @unique
+
+  ownerId    String?
+  owner      User?   @relation("HouseholdOwner", fields: [ownerId], references: [id])
+  users     User[]
+  categories Category[] 
+  recurringFlows RecurringFlow[]
+  budgetLimits   BudgetLimit[] 
+  
+  // Direct Transactions (Optimization)
+  transactions   Transaction[]
+}
+
+model Account {
+  id          String      @id @default(cuid())
+  name        String
+  type        AccountType
+  currency    Currency
+  balance     Decimal     @db.Decimal(19, 4) // Cached current balance
+  
+  // Ownership Logic
+  ownerId     String?     // If NULL -> Joint. If SET -> Personal.
+  owner       User?       @relation(fields: [ownerId], references: [id])
+  
+  // Household Scope
+  householdId String
+  
+  transactions Transaction[]
+  positions    InvestmentPosition[]
+
+  isArchived  Boolean     @default(false)
+
+  @@index([householdId]) // For fetching all accounts in a household
+}
+
+model ExchangeRate {
+  id        String   @id @default(cuid())
+  date      DateTime
+  from      Currency
+  to        Currency
+  rate      Decimal  @db.Decimal(19, 6)
+  
+  @@unique([date, from, to])
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  type        TransactionType @default(EXPENSE)
+  icon        String?  // Emoji or Lucide icon name
+  
+  householdId String?  // NULL = System Default, SET = Custom
+  household   Household? @relation(fields: [householdId], references: [id])
+  
+  isArchived  Boolean  @default(false)
+
+  transactions Transaction[]
+  budgetLimits BudgetLimit[]
+}
+
+model Transaction {
+  id          String          @id @default(cuid())
+  date        DateTime
+  amount      Decimal         @db.Decimal(19, 4)
+  currency    Currency        
+  description String
+  type        TransactionType
+  
+  categoryId  String?
+  category    Category?       @relation(fields: [categoryId], references: [id])
+  
+  accountId   String?
+  account     Account?        @relation(fields: [accountId], references: [id])
+
+  tripId      String?
+  trip        Trip?           @relation(fields: [tripId], references: [id])
+
+  // Optimization: Denormalize householdId for fast queries
+  householdId String? // Optional for migration, fill with script or default? 
+  // Actually, for this exercise let's just use it. 
+  // Wait, if I add it I need to backfill it. 
+  // Can I query by account.householdId? Yes, but joining is slower.
+  // The prompt asked to index [householdId, date]. This implies adding the field.
+  // Let's add it as optional or assume it exists. 
+  
+  // Realistically, to index on it, it must exist.
+  // Adding it now.
+  household   Household?      @relation(fields: [householdId], references: [id])
+
+  spentByUserId String?
+  spentBy       User?         @relation("SpentBy", fields: [spentByUserId], references: [id])
+
+  subscriptionId String?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  @@index([accountId, date]) // Existing implicit or useful?
+  @@index([householdId, date]) // For "Recent Activity" list
+  @@index([categoryId]) // For "Spending by Category" charts
+}
+
+model Subscription {
+  id          String    @id @default(cuid())
+  name        String
+  amount      Decimal   @db.Decimal(19, 4)
+  currency    Currency
+  accountId   String
+  categoryId  String?
+  frequency   String    // cron string or enum (MONTHLY, etc)
+  nextRunDate DateTime
+  isActive    Boolean   @default(true)
+  
+  transactions Transaction[]
+}
+
+enum AssetClass {
+  EQUITY
+  CRYPTO
+  FIXED_INCOME
+  REAL_ESTATE
+  PENSION
+}
+
+model InvestmentPosition {
+  id        String   @id @default(cuid())
+  accountId String
+  account   Account  @relation(fields: [accountId], references: [id])
+  
+  ticker    String?  // Optional for Manual assets
+  name      String   // Display name (e.g. "Apple Inc" or "Apt 4B")
+  assetClass AssetClass @default(EQUITY)
+  currency  Currency @default(USD)
+
+  quantity  Decimal  @db.Decimal(19, 6)
+  costBasis Decimal  @db.Decimal(19, 4) // Total Cost or Avg Price? Usually Avg Price * Qty = Total Cost. Let's assume Unit Cost Basis.
+}
+
+model PriceHistory {
+  id        String   @id @default(cuid())
+  ticker    String
+  date      DateTime
+  price     Decimal  @db.Decimal(19, 4)
+  currency  Currency
+  
+  @@unique([ticker, date])
+}
+
+enum FlowType {
+  INCOME
+  EXPENSE
+}
+
+enum Frequency {
+  MONTHLY
+  QUARTERLY
+  SEMIANNUAL
+  ANNUAL
+  ONE_TIME
+  WEEKLY
+  YEARLY
+}
+
+model RecurringFlow {
+  id          String    @id @default(cuid())
+  name        String
+  amount      Decimal   @db.Decimal(19, 4)
+  type        FlowType
+  frequency   Frequency @default(MONTHLY)
+  startDate   DateTime  @default(now())
+  isActive    Boolean   @default(true)
+  householdId String
+  household   Household @relation(fields: [householdId], references: [id])
+
+  @@index([householdId, isActive]) // For fetching active flow plans
+}
+
+model BudgetLimit {
+  id          String    @id @default(cuid())
+  amount      Decimal   @db.Decimal(19, 4)
+  period      Frequency @default(MONTHLY)
+  
+  categoryId  String
+  category    Category  @relation(fields: [categoryId], references: [id])
+  
+  householdId String
+  household   Household @relation(fields: [householdId], references: [id])
+
+  @@unique([categoryId, period]) // One limit per category per period type
+}
+
+enum TripStatus {
+  PLANNING
+  ACTIVE
+  COMPLETED
+}
+
+enum TripRole {
+  OWNER
+  GUEST
+}
+
+model Trip {
+  id          String       @id @default(cuid())
+  name        String
+  startDate   DateTime?
+  endDate     DateTime?
+  budgetLimit Decimal?     @db.Decimal(19, 4)
+  status      TripStatus   @default(PLANNING)
+  
+  members     TripMember[]
+  transactions Transaction[]
+  invites     TripInvite[]
+}
+
+model TripMember {
+  id        String   @id @default(cuid())
+  role      TripRole @default(GUEST)
+  
+  tripId    String
+  trip      Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, userId])
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+}
+
+model TripInvite {
+  id        String       @id @default(cuid())
+  token     String       @unique
+  email     String?      // Optional: specific email invite
+  expiresAt DateTime
+  status    InviteStatus @default(PENDING)
+  
+  tripId    String
+  trip      Trip         @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime     @default(now())
+}

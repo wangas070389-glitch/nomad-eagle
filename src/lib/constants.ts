@@ -1,0 +1,1 @@
+export const SYSTEM_MISSION = "To provide radical financial clarity for households by transforming complex banking data into actionable life plans, enabling confident spending and shared experiences.";
