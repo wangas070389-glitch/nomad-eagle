@@ -9,7 +9,9 @@ import { useSearchParams, useRouter } from "next/navigation"
 import { useActionState, useEffect } from "react"
 import { LayoutGrid } from "lucide-react"
 
-export default function RegisterPage() {
+import { Suspense } from "react"
+
+function RegisterContent() {
     const searchParams = useSearchParams()
     const router = useRouter()
     const inviteCode = searchParams.get("invite")
@@ -129,5 +131,13 @@ export default function RegisterPage() {
                 </div>
             </div>
         </div>
+    )
+}
+
+export default function RegisterPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-white"><div className="text-indigo-600 font-medium">Loading registration safely...</div></div>}>
+            <RegisterContent />
+        </Suspense>
     )
 }
