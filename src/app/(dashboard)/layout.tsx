@@ -35,8 +35,12 @@ export default async function DashboardLayout({
                         <Link href="/settings" className="hover:text-violet-600 transition-colors">Settings</Link>
                     </div>
                 </div>
+                import {MobileNav} from "@/components/layout/mobile-nav"
+
+                // ... inside render ...
                 <div className="flex gap-4 text-sm text-gray-600 dark:text-gray-300">
                     <UserNav user={session.user as any} />
+                    <MobileNav />
                 </div>
             </nav>
             <main className="p-6 max-w-7xl mx-auto">{children}</main>

@@ -80,7 +80,7 @@ export default async function DashboardPage() {
                     </div>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2 justify-start sm:justify-end">
                     <ReportGenerator />
 
                     {categories.length === 0 && (
