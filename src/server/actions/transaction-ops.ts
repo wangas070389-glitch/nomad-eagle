@@ -37,7 +37,8 @@ export async function deleteTransaction(id: string) {
         return { error: "Unauthorized" }
     }
 
-    if (!tx.accountId) return { error: "Transaction has no linked account" }
+    const targetAccountId = tx.accountId
+    if (!targetAccountId) return { error: "Transaction has no linked account" }
 
     try {
         await prisma.$transaction(async (txPrisma) => {
@@ -56,7 +57,7 @@ export async function deleteTransaction(id: string) {
 
             if (balanceChange !== 0) {
                 await txPrisma.account.update({
-                    where: { id: tx.accountId },
+                    where: { id: targetAccountId },
                     data: {
                         balance: { increment: balanceChange }
                     }
@@ -114,7 +115,8 @@ export async function updateTransaction(id: string, prevState: any, formData: Fo
     // Auth Checks
     if (oldTx.account?.householdId !== session.user.householdId) return { error: "Unauthorized" }
 
-    if (!oldTx.accountId) return { error: "Transaction has no linked account" }
+    const oldAccountId = oldTx.accountId
+    if (!oldAccountId) return { error: "Transaction has no linked account" }
 
     // If moving to a new account, check access to new account
     if (accountId !== oldTx.accountId) {
@@ -140,7 +142,7 @@ export async function updateTransaction(id: string, prevState: any, formData: Fo
 
             if (revertChange !== 0) {
                 await txPrisma.account.update({
-                    where: { id: oldTx.accountId },
+                    where: { id: oldAccountId },
                     data: { balance: { increment: revertChange } }
                 })
             }
