@@ -1,0 +1,31 @@
+{
+  "name": "Nomad Eagle",
+  "description": "Sovereign Financial Planning System",
+  "version": "1.0.0",
+  "api": {
+    "type": "openapi",
+    "url": "/api/openapi.json"
+  },
+  "capabilities": [
+    {
+      "name": "calculate_net_worth",
+      "description": "Aggregates all assets and liabilities to return total net worth in base currency.",
+      "parameters": {
+        "currency": "string (optional, default: USD)"
+      }
+    },
+    {
+      "name": "simulate_expense",
+      "description": "Projects impact of a recurring expense on 10-year wealth trajectory.",
+      "parameters": {
+        "amount": "number",
+        "frequency": "string (MONTHLY|YEARLY)",
+        "duration_years": "number"
+      }
+    }
+  ],
+  "safety": {
+    "human_approval_required": ["transfer_funds", "delete_account"],
+    "data_classification": "high_confidentiality"
+  }
+}

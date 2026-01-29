@@ -5,13 +5,21 @@ import { prisma } from "@/lib/prisma"
 import { getServerSession } from "next-auth"
 import { revalidatePath } from "next/cache"
 
+import { ActionState } from "@/lib/types"
+import { AccountType, Currency, Prisma } from "@prisma/client"
+
+// Local definition if not global yet
+type LocalActionState = {
+    error?: string
+    success?: boolean
+}
+
 export async function getAccounts(showArchived = false) {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.id) return []
+    if (!session?.user?.id || !session.user.householdId) return []
 
     // Fetch household accounts
-    // Logic: Active accounts only by default
-    const where: any = {
+    const where: Prisma.AccountWhereInput = {
         householdId: session.user.householdId
     }
 
@@ -31,14 +39,14 @@ export async function getAccounts(showArchived = false) {
     }))
 }
 
-export async function createAccount(prevState: any, formData: FormData) {
+export async function createAccount(prevState: LocalActionState, formData: FormData) {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) return { error: "Not authenticated" }
 
     const name = formData.get("name") as string
-    const type = formData.get("type") as string
+    const type = formData.get("type") as AccountType
     const balance = Number(formData.get("balance"))
-    const currency = formData.get("currency") as string
+    const currency = formData.get("currency") as Currency
 
     if (!name) return { error: "Name is required" }
 
@@ -46,9 +54,9 @@ export async function createAccount(prevState: any, formData: FormData) {
         await prisma.account.create({
             data: {
                 name,
-                type: type as any,
+                type,
                 balance,
-                currency: currency as any,
+                currency,
                 householdId: session.user.householdId!,
                 ownerId: session.user.id // Default to personal ownership
             }
@@ -103,8 +111,6 @@ export async function updateAccount(
                     accountId: account.id,
                     householdId: account.householdId,
                     spentByUserId: session.user.id,
-                    // If we had a special category for "Adjustment", we'd use it.
-                    // For now, let's leave category blank or system default if we had one.
                 }
             })
         }
@@ -113,7 +119,7 @@ export async function updateAccount(
             where: { id: accountId },
             data: {
                 name: data.name,
-                type: data.type as any,
+                type: data.type as AccountType,
                 balance: data.balance,
                 isArchived: data.isArchived
             }

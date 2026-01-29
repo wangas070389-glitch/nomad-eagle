@@ -148,7 +148,7 @@ export default async function TripDetailsPage({ params }: { params: Promise<{ id
                 <TravelersList
                     members={trip.members}
                     tripId={trip.id}
-                    isOwner={trip.members.find((m: any) => m.userId === session?.user?.id)?.role === "OWNER"}
+                    isOwner={trip.members.find((m) => m.userId === session?.user?.id)?.role === "OWNER"}
                 />
 
                 {/* My Balance */}
@@ -188,7 +188,7 @@ export default async function TripDetailsPage({ params }: { params: Promise<{ id
                         {trip.transactions.length === 0 ? (
                             <p className="text-center text-muted-foreground py-8">No expenses yet.</p>
                         ) : (
-                            trip.transactions.map((t: any) => (
+                            trip.transactions.map((t) => (
                                 <div key={t.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-slate-50">
                                     <div className="flex items-center gap-4">
                                         <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600">

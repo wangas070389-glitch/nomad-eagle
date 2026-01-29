@@ -13,7 +13,8 @@ import { Button } from "@/components/ui/button"
 import { Trash2, TrendingUp, TrendingDown, Wallet } from "lucide-react"
 import { FlowRow } from "@/components/planning/flow-row"
 import { AddCategoryCard } from "@/components/planning/add-category-card"
-// ... imports
+import { generateSurplusProjection } from "@/server/core/wealth-recommender"
+import { WealthRecommendationCard } from "@/components/planning/wealth-recommender-card"
 
 export default async function PlanningPage() {
     const session = await getServerSession(authOptions)
@@ -40,6 +41,13 @@ export default async function PlanningPage() {
                     <p className="text-muted-foreground">Define your future. Set your fixed flows and variable limits.</p>
                 </div>
             </div>
+
+            {generateSurplusProjection(income - expense - budget) && (
+                <div className="mb-6">
+                    <WealthRecommendationCard data={generateSurplusProjection(income - expense - budget)!} />
+                </div>
+            )}
+
 
             <div className="grid gap-6 lg:grid-cols-3">
                 <div className="lg:col-span-2">

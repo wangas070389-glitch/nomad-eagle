@@ -1,3 +1,5 @@
+import { SHIELD_CONFIG } from "../../shield.config"
+
 export class RateLimiter {
     private timestamps: Map<string, number[]> = new Map();
     private windowMs: number;
@@ -30,5 +32,8 @@ export class RateLimiter {
 }
 
 // Global instance for simple in-memory limiting (per container)
-// 5 attempts per 60 seconds
-export const loginRateLimiter = new RateLimiter(60 * 1000, 5);
+// Configured via Shield Protocol
+export const loginRateLimiter = new RateLimiter(
+    60 * 1000,
+    SHIELD_CONFIG.network.rate_limit_per_minute
+);

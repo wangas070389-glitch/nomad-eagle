@@ -8,7 +8,9 @@ import { deleteRecurringFlow, toggleFlowActive } from "@/server/actions/planning
 import { useTransition, useOptimistic } from "react"
 import { useRouter } from "next/navigation"
 
-export function FlowRow({ flow }: { flow: any }) {
+import { SafeRecurringFlow } from "@/lib/types"
+
+export function FlowRow({ flow }: { flow: SafeRecurringFlow }) {
     const [isPending, startTransition] = useTransition()
     const router = useRouter() // Consider removing if actions revalidatePath properly
 

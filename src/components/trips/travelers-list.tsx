@@ -6,12 +6,14 @@ import { createInviteToken } from "@/server/actions/trip-invite"
 import { Copy, Users } from "lucide-react"
 import { useState } from "react"
 
+import { TripMemberWithUser } from "@/lib/types"
+
 export function TravelersList({
     members,
     tripId,
     isOwner
 }: {
-    members: any[],
+    members: TripMemberWithUser[],
     tripId: string,
     isOwner: boolean
 }) {

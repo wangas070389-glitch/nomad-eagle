@@ -16,7 +16,9 @@ import { DollarSign } from "lucide-react"
 import { useState } from "react"
 import { capitalizeInvestment } from "@/server/actions/investments"
 
-export function CapitalizeInvestmentDialog({ position, accounts }: { position: any, accounts: any[] }) {
+import { SafeAccount, InvestmentPositionWithValue } from "@/lib/types"
+
+export function CapitalizeInvestmentDialog({ position, accounts }: { position: InvestmentPositionWithValue, accounts: SafeAccount[] }) {
     const [open, setOpen] = useState(false)
     const [units, setUnits] = useState(position.quantity)
     const [price, setPrice] = useState(position.currentPrice || 0)

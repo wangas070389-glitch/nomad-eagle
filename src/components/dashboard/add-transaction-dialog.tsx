@@ -14,14 +14,9 @@ import { Label } from "@/components/ui/label"
 import { createTransaction } from "@/server/actions/transactions"
 import { updateTransaction } from "@/server/actions/transaction-ops"
 import { useActionState, useState, useEffect } from "react"
-import { CategorySelect, CategoryOption } from "./category-select"
+import { CategorySelect, type CategoryOption } from "./category-select"
 
-type AccountOption = {
-    id: string
-    name: string
-    ownerId: string | null
-    currency: string
-}
+import { SafeAccount, AccountOption } from "@/lib/types"
 
 export function AddTransactionDialog({
     accounts,
@@ -31,17 +26,26 @@ export function AddTransactionDialog({
     initialData,
     onClose
 }: {
-    accounts: AccountOption[],
+    accounts: AccountOption[], // Accept broader SafeAccount is fine too as it extends Option
     categories: CategoryOption[],
     members?: { id: string, name: string | null }[],
     currentUserId?: string,
-    initialData?: any,
+    initialData?: {
+        id?: string
+        description: string
+        amount: number
+        type: "INCOME" | "EXPENSE" | "TRANSFER"
+        date: string
+        categoryId: string
+        accountId: string
+        spentByUserId?: string
+    },
     onClose?: () => void
 }) {
     const [open, setOpen] = useState(false)
 
-    const actionFn = initialData ? updateTransaction.bind(null, initialData.id) : createTransaction
-    const [state, action, isPending] = useActionState(actionFn, null)
+    const actionFn = initialData ? updateTransaction.bind(null, initialData.id!) : createTransaction
+    const [state, action, isPending] = useActionState(actionFn, {})
 
     // Auto-open if initialData provided (Edit Mode)
     useEffect(() => {

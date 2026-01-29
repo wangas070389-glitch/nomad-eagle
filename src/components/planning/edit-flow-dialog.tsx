@@ -23,7 +23,9 @@ import { updateRecurringFlow } from "@/server/actions/planning"
 import { useState } from "react"
 import { Pencil } from "lucide-react"
 
-export function EditFlowDialog({ flow }: { flow: any }) {
+import { SafeRecurringFlow } from "@/lib/types"
+
+export function EditFlowDialog({ flow }: { flow: SafeRecurringFlow }) {
     const [open, setOpen] = useState(false)
 
     async function handleSubmit(formData: FormData) {

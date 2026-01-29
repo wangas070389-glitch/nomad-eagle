@@ -42,23 +42,23 @@ export const authOptions: NextAuthOptions = {
                 });
 
                 // 2. The Auth Patch: Verify Hash
-                if (!user) {
-                    return null
+                if (user) {
+                    if (!user.password) {
+                        return null
+                    }
+
+                    // Dynamically import bcrypt to avoid build issues if types are missing, though we installed them.
+                    const bcrypt = require("bcryptjs")
+                    const isValid = await bcrypt.compare(credentials.password, user.password)
+
+                    if (!isValid) {
+                        throw new Error("Invalid credentials")
+                    }
+                    // User exists and password matches
                 }
 
-                if (!user.password) {
-                    return null
-                }
-
-                // Dynamically import bcrypt to avoid build issues if types are missing, though we installed them.
-                const bcrypt = require("bcryptjs")
-                const isValid = await bcrypt.compare(credentials.password, user.password)
-
-                if (!isValid) {
-                    throw new Error("Invalid credentials")
-                }
-                // To make it easy: If user exists, return it. If not, create it (Auto-signup).
-                // WARNING: IN PROD this is insecure without email verification.
+                // If user exists, we fall through to return it below.
+                // If user does NOT exist, we proceed to auto-signup.
 
                 if (!user) {
                     // Create User -> Create Household -> Connect

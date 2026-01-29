@@ -23,7 +23,7 @@ export default function ProfilePage() {
     useEffect(() => {
         if (session?.user) {
             setName(session.user.displayName || session.user.name || "")
-            // @ts-ignore - relying on our new types but they might take a sec to propagate in IDE
+            setName(session.user.displayName || session.user.name || "")
             setCurrency(session.user.currency || "MXN")
         }
     }, [session])

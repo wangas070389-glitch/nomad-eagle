@@ -13,9 +13,11 @@ import { Label } from "@/components/ui/label"
 import { createPosition } from "@/server/actions/investments"
 import { useActionState, useState } from "react"
 
-export function AddInvestmentDialog({ accounts }: { accounts: any[] }) {
+import { SafeAccount } from "@/lib/types"
+
+export function AddInvestmentDialog({ accounts }: { accounts: SafeAccount[] }) {
     const [open, setOpen] = useState(false)
-    const [state, action, isPending] = useActionState(createPosition, null)
+    const [state, action, isPending] = useActionState(createPosition, {})
     const [isManual, setIsManual] = useState(false)
 
     if (state?.success && open) {

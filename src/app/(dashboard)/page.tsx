@@ -68,7 +68,7 @@ export default async function DashboardPage() {
 
     const currentUserId = session.user.id
 
-    const cashBalance = accounts.reduce((sum: number, acc: any) => sum + Number(acc.balance), 0)
+    const cashBalance = accounts.reduce((sum: number, acc) => sum + Number(acc.balance), 0)
 
     return (
         <div id="dashboard-content" className="space-y-6 min-h-screen bg-slate-50/50 p-6 -m-6">
@@ -157,7 +157,7 @@ export default async function DashboardPage() {
                             </div>
                         ) : (
                             <div className="grid gap-4 md:grid-cols-2">
-                                {accounts.map((acc: any) => (
+                                {accounts.map((acc) => (
                                     <AccountCard key={acc.id} account={acc} />
                                 ))}
                             </div>
@@ -168,7 +168,7 @@ export default async function DashboardPage() {
 
                     <div>
                         <TransactionList
-                            transactions={transactions as any[]}
+                            transactions={transactions}
                             currentUserId={currentUserId}
                             accounts={accountOptions}
                             categories={categories}

@@ -39,7 +39,7 @@ export default async function TripsPage() {
                 </Card>
 
                 {/* Existing Trips */}
-                {trips.map((trip: any) => (
+                {trips.map((trip) => (
                     <Link key={trip.id} href={`/trips/${trip.id}`}>
                         <Card className="h-full hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden">
                             {trip.status === "ACTIVE" && (
@@ -71,8 +71,8 @@ export default async function TripsPage() {
                                         </div>
                                     )}
                                     <div className="pt-4 flex -space-x-2">
-                                        {trip.members.map((m: any) => (
-                                            <div key={m.id} className="h-8 w-8 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-600" title={m.user.name}>
+                                        {trip.members.map((m) => (
+                                            <div key={m.id} className="h-8 w-8 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-600" title={m.user.name || "User"}>
                                                 {m.user.name?.[0] || "U"}
                                             </div>
                                         ))}

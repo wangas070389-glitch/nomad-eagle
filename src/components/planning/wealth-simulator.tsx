@@ -7,13 +7,21 @@ import { ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveCo
 import { Maximize2, Minimize2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
+import { SimulationData } from "@/lib/types"
+
 export function WealthSimulator() {
-    const [simData, setSimData] = useState<any>(null)
+    const [simData, setSimData] = useState<SimulationData | null>(null)
     const [horizon, setHorizon] = useState<number>(60) // Default 5 Years
     const [isFullScreen, setIsFullScreen] = useState(false)
 
     useEffect(() => {
-        simulateNetWorth(60, 0.08).then(setSimData)
+        simulateNetWorth(60, 0.08).then((res) => {
+            if ('error' in res) {
+                console.error(res.error)
+            } else {
+                setSimData(res)
+            }
+        })
     }, [])
 
     if (!simData) return <div className="h-[300px] w-full animate-pulse bg-muted rounded-xl" />
@@ -95,7 +103,7 @@ export function WealthSimulator() {
                                     tickFormatter={(value) => `$${value / 1000}k`}
                                 />
                                 <Tooltip
-                                    formatter={(value: any) => value ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(value) : '-'}
+                                    formatter={(value: number | undefined) => value ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(value) : '-'}
                                     contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                                     labelStyle={{ fontWeight: 'bold', color: '#333' }}
                                 />

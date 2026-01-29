@@ -6,6 +6,7 @@ import { TransactionType } from "@prisma/client"
 import { getServerSession } from "next-auth"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
+import { ActionState } from "@/lib/types"
 
 const createTransactionSchema = z.object({
     amount: z.number().positive(),
@@ -62,7 +63,9 @@ export async function getCategories() {
     })
 }
 
-export async function createTransaction(prevState: any, formData: FormData) {
+
+
+export async function createTransaction(prevState: ActionState, formData: FormData): Promise<ActionState> {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id || !session.user.householdId) return { error: "Not authenticated" }
 
@@ -116,7 +119,7 @@ export async function createTransaction(prevState: any, formData: FormData) {
                     accountId,
                     currency: account.currency,
                     spentByUserId,
-                } as any
+                }
             })
 
             // 2. Update Balance
@@ -134,6 +137,7 @@ export async function createTransaction(prevState: any, formData: FormData) {
         revalidatePath("/dashboard")
         return { success: true }
     } catch (e) {
+        console.error(e)
         return { error: "Transaction failed" }
     }
 }

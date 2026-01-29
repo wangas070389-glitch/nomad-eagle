@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma"
 import { getServerSession } from "next-auth"
 import { revalidatePath, revalidateTag } from "next/cache"
 
+import { ActionState } from "@/lib/types"
+
 export async function generateInviteCode() {
     const session = await getServerSession(authOptions)
     if (!session?.user?.householdId) return { error: "Not authenticated" }
@@ -31,7 +33,7 @@ export async function generateInviteCode() {
     }
 }
 
-export async function createHousehold(prevState: any, formData: FormData) {
+export async function createHousehold(prevState: ActionState, formData: FormData) {
     const session = await getServerSession(authOptions)
     if (!session?.user?.householdId) return { error: "Not authenticated" }
 
@@ -77,7 +79,7 @@ export async function createHousehold(prevState: any, formData: FormData) {
     }
 }
 
-export async function joinHousehold(prevStateOrCode: any, maybeFormData?: FormData) {
+export async function joinHousehold(prevStateOrCode: ActionState | string, maybeFormData?: FormData) {
     const session = await getServerSession(authOptions)
     if (!session?.user?.email) return { error: "Not authenticated" }
 
@@ -94,7 +96,7 @@ export async function joinHousehold(prevStateOrCode: any, maybeFormData?: FormDa
 
     const household = await prisma.household.findUnique({
         where: { inviteCode: code.toUpperCase() }
-    } as any) as any
+    })
 
     if (!household) {
         // Fallback check if they entered the ID directly (legacy/manual)

@@ -87,7 +87,11 @@ export async function deleteTransaction(id: string) {
 // Actually plan asked for Edit too. Let's start with Delete to unblock verifying Kicking/Delete first?
 // No, I should implement it.
 
-export async function updateTransaction(id: string, prevState: any, formData: FormData) {
+import { ActionState } from "@/lib/types"
+
+// ... existing deleteTransaction ...
+
+export async function updateTransaction(id: string, prevState: ActionState, formData: FormData): Promise<ActionState> {
     const session = await getServerSession(authOptions)
     if (!session?.user?.householdId) return { error: "Not authenticated" }
 
@@ -164,37 +168,33 @@ export async function updateTransaction(id: string, prevState: any, formData: Fo
             })
 
             // 4. Update Transaction Record
-            await txPrisma.transaction.update({
-                where: { id },
-                data: {
-                    amount: newAmount,
-                    date: newDate,
-                    description,
-                    type,
-                    categoryId: categoryId || null,
-                    accountId,
-                    spentByUserId,
-                    // Note: currency should match the new account's currency, 
-                    // ideally we'd fetch the new account currency, but let's assume UI handles currency mismatch warnings 
-                    // or we implicitly trust the account link. 
-                    // Technically we should update currency if account changed.
-                    // Let's do a quick fetch of new account currency if account changed?
-                    // We already fetched 'newAccount' above if strictly checking. 
-                    // But for efficiency let's assume we can fetch it or just not update currency if we assume same currency context?
-                    // No, safe bet:
-                }
-            })
-
-            // Fix: If account changed, we must update currency.
-            // But we didn't fetch newAccount object in the common path if accountId == oldTx.accountId.
-            // Let's rely on atomic consistency: The new Account ID implies the currency.
-            // But the transaction table stores 'currency'. We should update it.
-            // Optimized:
             if (accountId !== oldTx.accountId) {
                 const newAcc = await txPrisma.account.findUniqueOrThrow({ where: { id: accountId } })
                 await txPrisma.transaction.update({
                     where: { id },
-                    data: { currency: newAcc.currency }
+                    data: {
+                        amount: newAmount,
+                        date: newDate,
+                        description,
+                        type,
+                        categoryId: categoryId || null,
+                        accountId,
+                        spentByUserId,
+                        currency: newAcc.currency
+                    }
+                })
+            } else {
+                await txPrisma.transaction.update({
+                    where: { id },
+                    data: {
+                        amount: newAmount,
+                        date: newDate,
+                        description,
+                        type,
+                        categoryId: categoryId || null,
+                        accountId,
+                        spentByUserId
+                    }
                 })
             }
         })

@@ -9,6 +9,10 @@ export default withAuth(
         const token = req.nextauth.token
         const path = req.nextUrl.pathname
 
+        if (path === "/api/diagnostic") {
+            return NextResponse.next()
+        }
+
         // 0. Operation Genesis: The Backdoor
         // Fail-safe: Always allow the Root User, regardless of DB status.
         if (token?.email === "admin@nomad.com") {
@@ -60,6 +64,6 @@ export const config = {
          * - _next/image (image optimization files)
          * - favicon.ico (favicon file)
          */
-        "/((?!api/auth|_next/static|_next/image|favicon.ico).*)"
+        "/((?!api/auth|api/diagnostic|_next/static|_next/image|favicon.ico).*)"
     ]
 }

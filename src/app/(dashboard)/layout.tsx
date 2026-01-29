@@ -33,11 +33,12 @@ export default async function DashboardLayout({
                         <Link href="/" className="hover:text-violet-600 transition-colors">Dashboard</Link>
                         <Link href="/plan" className="hover:text-violet-600 transition-colors">Plan</Link>
                         <Link href="/trips" className="hover:text-violet-600 transition-colors">Trips</Link>
+                        <Link href="/wealth" className="hover:text-violet-600 transition-colors">Wealth</Link>
                         <Link href="/settings" className="hover:text-violet-600 transition-colors">Settings</Link>
                     </div>
                 </div>
                 <div className="flex gap-4 text-sm text-gray-600 dark:text-gray-300">
-                    <UserNav user={session.user as any} />
+                    <UserNav user={session.user} />
                     <MobileNav />
                 </div>
             </nav>

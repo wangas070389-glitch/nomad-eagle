@@ -2,32 +2,13 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { TransactionActions } from "./transaction-actions"
 import { AddTransactionDialog } from "./add-transaction-dialog"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import type { CategoryOption } from "./category-select" // Helper type from select
-
-type TransactionView = {
-    id: string
-    amount: any
-    description: string
-    date: Date
-    type: string
-    category: { name: string, icon: string | null } | null
-    account: { name: string, currency: string, id: string, ownerId: string | null }
-    spentBy?: { id: string, name: string | null, email: string } | null
-    categoryId?: string // Needed for edit
-}
-
-// We need to fetch AccountOption and CategoryOption from parent 
-// or define them here matching what AddDialog expects.
-type AccountOption = {
-    id: string
-    name: string
-    ownerId: string | null
-    currency: string
-}
+import { SafeTransaction, SafeAccount, AccountOption } from "@/lib/types" // Helper type from select
 
 export function TransactionList({
     transactions,
@@ -36,17 +17,17 @@ export function TransactionList({
     categories = [],
     members = []
 }: {
-    transactions: TransactionView[],
+    transactions: SafeTransaction[],
     currentUserId?: string,
-    accounts?: AccountOption[],
+    accounts?: AccountOption[], // Use AccountOption
     categories?: CategoryOption[],
     members?: { id: string, name: string | null }[]
 }) {
-    const [items, setItems] = useState<TransactionView[]>(transactions)
+    const [items, setItems] = useState<SafeTransaction[]>(transactions)
     const [page, setPage] = useState(1)
     const [hasMore, setHasMore] = useState(true)
     const [loadingMore, setLoadingMore] = useState(false)
-    const [editingTx, setEditingTx] = useState<TransactionView | null>(null)
+    const [editingTx, setEditingTx] = useState<SafeTransaction | null>(null)
 
     // Update items if initial props change (e.g. new transaction added elsewhere)
     // Actually, strictly speaking we might want to just initialize. 
@@ -80,7 +61,7 @@ export function TransactionList({
         // Mismatch: Server action returns raw Prisma objects, 
         // Component expects TransactionView.
         // We need to map it.
-        const formatted = newTxs.map((tx: any) => ({
+        const formatted = newTxs.map((tx) => ({
             ...tx,
             amount: Number(tx.amount), // ensure number
             category: tx.category,
@@ -112,7 +93,7 @@ export function TransactionList({
         if (!groups[date]) groups[date] = []
         groups[date].push(tx)
         return groups
-    }, {} as Record<string, TransactionView[]>)
+    }, {} as Record<string, SafeTransaction[]>)
 
     return (
         <>
@@ -134,7 +115,7 @@ export function TransactionList({
                                             <div className="h-10 w-10 flex items-center justify-center rounded-full bg-gray-100 text-lg relative">
                                                 {tx.category?.icon || (tx.type === "INCOME" ? "💰" : "📝")}
                                                 {isSharedAndNotMe && (
-                                                    <div className="absolute -bottom-1 -right-1 bg-purple-100 text-[10px] px-1 rounded-full border border-purple-200 text-purple-800 font-bold" title={`Spent by ${tx.spentBy?.name || 'Partner'}`}>
+                                                    <div className="absolute -bottom-1 -right-1 bg-purple-100 text-[10px] px-1 rounded-full border border-purple-200 text-purple-800 font-bold" title={`Spent by ${tx.spentBy?.name || 'Partner'} `}>
                                                         {tx.spentBy?.name?.charAt(0) || "P"}
                                                     </div>
                                                 )}
@@ -144,9 +125,12 @@ export function TransactionList({
                                                     {tx.description}
                                                 </div>
                                                 <div className="text-xs text-muted-foreground flex items-center gap-1">
-                                                    {tx.category?.name || "Uncategorized"} • {tx.account.name}
+                                                    {tx.category?.name || "Uncategorized"} • {tx.account?.name || "Unknown Account"}
                                                     {isSharedAndNotMe && (
                                                         <span className="text-purple-600 font-medium ml-1 flex items-center bg-purple-100 px-1.5 py-0.5 rounded text-[10px]">
+                                                            <Avatar className="h-4 w-4 mr-1">
+                                                                <AvatarImage src={tx.spentBy?.avatarUrl ?? ""} />
+                                                            </Avatar>
                                                             {tx.spentBy?.name || "Partner"}'s Card
                                                         </span>
                                                     )}
@@ -159,7 +143,7 @@ export function TransactionList({
                                                 tx.type === "INCOME" ? "text-green-600" : "text-gray-900"
                                             )}>
                                                 {tx.type === "EXPENSE" ? "-" : "+"}
-                                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: tx.account.currency }).format(Number(tx.amount))}
+                                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: tx.account?.currency || 'USD' }).format(Number(tx.amount))}
                                             </div>
                                             <TransactionActions
                                                 transactionId={tx.id}
@@ -200,8 +184,8 @@ export function TransactionList({
                         amount: Number(editingTx.amount),
                         type: editingTx.type,
                         date: new Date(editingTx.date).toISOString().slice(0, 16), // datetime-local format
-                        categoryId: editingTx.category?.name ? editingTx.categoryId : "", // Assuming we can get categoryId. Or we need to pass it in query.
-                        accountId: editingTx.account.id,
+                        categoryId: editingTx.category?.name ? editingTx.categoryId : "",
+                        accountId: editingTx.account?.id || "",
                     }}
                     onClose={() => setEditingTx(null)}
                 />

@@ -5,8 +5,9 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
 import { EditAccountDialog } from "@/components/dashboard/edit-account-dialog"
+import { SafeAccount } from "@/lib/types"
 
-export function AccountCard({ account }: { account: any }) {
+export function AccountCard({ account }: { account: SafeAccount }) {
     // Gradient mapping based on account type
     const gradients = {
         CHECKING: "bg-gradient-to-br from-blue-500 to-blue-600",

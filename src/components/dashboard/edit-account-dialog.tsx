@@ -25,7 +25,9 @@ import { Settings, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 
-export function EditAccountDialog({ account }: { account: any }) {
+import { SafeAccount } from "@/lib/types"
+
+export function EditAccountDialog({ account }: { account: SafeAccount }) {
     const [open, setOpen] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const router = useRouter()

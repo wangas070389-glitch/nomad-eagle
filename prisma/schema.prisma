@@ -27,35 +27,67 @@ enum TransactionType {
 }
 
 model User {
-  id          String      @id @default(cuid())
-  email       String      @unique
+  id          String     @id @default(cuid())
+  email       String     @unique
   name        String?
   householdId String?
-  household   Household?  @relation(fields: [householdId], references: [id])
-  accounts    Account[]   // Personal accounts owned by this user
-  
+  household   Household? @relation(fields: [householdId], references: [id])
+  accounts    Account[] // Personal accounts owned by this user
+
   // Logic: Users see their own accounts AND accounts with ownerId=null (Joint) in their household
   spentTransactions Transaction[] @relation("SpentBy")
   ownedHousehold    Household[]   @relation("HouseholdOwner")
   trips             TripMember[]
-  
-  // Protocol Identity
-  displayName       String?       // e.g. "Captain"
-  avatarUrl         String?       // URL to storage
-  currency          String        @default("MXN") // Preference
-  password          String?       // Hashed Password
-  
-  // Access Control
-  role              UserRole      @default(USER)
-  status            UserStatus    @default(PENDING)
 
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  // Protocol Identity
+  displayName String? // e.g. "Captain"
+  avatarUrl   String? // URL to storage
+  currency    String  @default("MXN") // Preference
+  jobTitle    String? // e.g. "Senior Software Engineer"
+  password    String? // Hashed Password
+
+  // Access Control
+  role   UserRole   @default(USER)
+  tier   UserTier   @default(FREE)
+  status UserStatus @default(PENDING)
+
+  incomeHistory       IncomeHistory[]
+  investmentScenarios InvestmentScenario[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  deletedAt DateTime?
+}
+
+model IncomeHistory {
+  id        String    @id @default(cuid())
+  amount    Decimal   @db.Decimal(19, 4)
+  currency  Currency
+  employer  String
+  title     String
+  startDate DateTime
+  endDate   DateTime? // Null = Current
+
+  description String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  deletedAt DateTime?
+
+  @@index([userId])
 }
 
 enum UserRole {
   USER
   ADMIN
+}
+
+enum UserTier {
+  FREE
+  PRO
 }
 
 enum UserStatus {
@@ -65,63 +97,79 @@ enum UserStatus {
 }
 
 model Household {
-  id        String   @id @default(cuid())
-  name      String
-  inviteCode String?  @unique
+  id         String  @id @default(cuid())
+  name       String
+  inviteCode String? @unique
 
-  ownerId    String?
-  owner      User?   @relation("HouseholdOwner", fields: [ownerId], references: [id])
-  users     User[]
-  categories Category[] 
+  ownerId        String?
+  owner          User?           @relation("HouseholdOwner", fields: [ownerId], references: [id])
+  users          User[]
+  categories     Category[]
   recurringFlows RecurringFlow[]
-  budgetLimits   BudgetLimit[] 
-  
+  budgetLimits   BudgetLimit[]
+
   // Direct Transactions (Optimization)
-  transactions   Transaction[]
+  transactions Transaction[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  deletedAt DateTime?
 }
 
 model Account {
-  id          String      @id @default(cuid())
-  name        String
-  type        AccountType
-  currency    Currency
-  balance     Decimal     @db.Decimal(19, 4) // Cached current balance
-  
+  id       String      @id @default(cuid())
+  name     String
+  type     AccountType
+  currency Currency
+  balance  Decimal     @db.Decimal(19, 4) // Cached current balance
+
   // Ownership Logic
-  ownerId     String?     // If NULL -> Joint. If SET -> Personal.
-  owner       User?       @relation(fields: [ownerId], references: [id])
-  
+  ownerId String? // If NULL -> Joint. If SET -> Personal.
+  owner   User?   @relation(fields: [ownerId], references: [id])
+
   // Household Scope
   householdId String
-  
+
   transactions Transaction[]
   positions    InvestmentPosition[]
 
-  isArchived  Boolean     @default(false)
+  isArchived Boolean @default(false)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  deletedAt DateTime?
 
   @@index([householdId]) // For fetching all accounts in a household
 }
 
 model ExchangeRate {
-  id        String   @id @default(cuid())
-  date      DateTime
-  from      Currency
-  to        Currency
-  rate      Decimal  @db.Decimal(19, 6)
-  
+  id   String   @id @default(cuid())
+  date DateTime
+  from Currency
+  to   Currency
+  rate Decimal  @db.Decimal(19, 6)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  deletedAt DateTime?
+
   @@unique([date, from, to])
 }
 
 model Category {
-  id          String   @id @default(cuid())
-  name        String
-  type        TransactionType @default(EXPENSE)
-  icon        String?  // Emoji or Lucide icon name
-  
-  householdId String?  // NULL = System Default, SET = Custom
+  id   String          @id @default(cuid())
+  name String
+  type TransactionType @default(EXPENSE)
+  icon String? // Emoji or Lucide icon name
+
+  householdId String? // NULL = System Default, SET = Custom
   household   Household? @relation(fields: [householdId], references: [id])
-  
-  isArchived  Boolean  @default(false)
+
+  isArchived Boolean @default(false)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  deletedAt DateTime?
 
   transactions Transaction[]
   budgetLimits BudgetLimit[]
@@ -131,18 +179,18 @@ model Transaction {
   id          String          @id @default(cuid())
   date        DateTime
   amount      Decimal         @db.Decimal(19, 4)
-  currency    Currency        
+  currency    Currency
   description String
   type        TransactionType
-  
-  categoryId  String?
-  category    Category?       @relation(fields: [categoryId], references: [id])
-  
-  accountId   String?
-  account     Account?        @relation(fields: [accountId], references: [id])
 
-  tripId      String?
-  trip        Trip?           @relation(fields: [tripId], references: [id])
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
+
+  accountId String?
+  account   Account? @relation(fields: [accountId], references: [id])
+
+  tripId String?
+  trip   Trip?   @relation(fields: [tripId], references: [id])
 
   // Optimization: Denormalize householdId for fast queries
   householdId String? // Optional for migration, fill with script or default? 
@@ -151,16 +199,20 @@ model Transaction {
   // Can I query by account.householdId? Yes, but joining is slower.
   // The prompt asked to index [householdId, date]. This implies adding the field.
   // Let's add it as optional or assume it exists. 
-  
+
   // Realistically, to index on it, it must exist.
   // Adding it now.
-  household   Household?      @relation(fields: [householdId], references: [id])
+  household Household? @relation(fields: [householdId], references: [id])
 
   spentByUserId String?
-  spentBy       User?         @relation("SpentBy", fields: [spentByUserId], references: [id])
+  spentBy       User?   @relation("SpentBy", fields: [spentByUserId], references: [id])
 
   subscriptionId String?
   subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  deletedAt DateTime?
 
   @@index([accountId, date]) // Existing implicit or useful?
   @@index([householdId, date]) // For "Recent Activity" list
@@ -168,17 +220,21 @@ model Transaction {
 }
 
 model Subscription {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   name        String
-  amount      Decimal   @db.Decimal(19, 4)
+  amount      Decimal  @db.Decimal(19, 4)
   currency    Currency
   accountId   String
   categoryId  String?
-  frequency   String    // cron string or enum (MONTHLY, etc)
+  frequency   String // cron string or enum (MONTHLY, etc)
   nextRunDate DateTime
-  isActive    Boolean   @default(true)
-  
+  isActive    Boolean  @default(true)
+
   transactions Transaction[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  deletedAt DateTime?
 }
 
 enum AssetClass {
@@ -190,26 +246,34 @@ enum AssetClass {
 }
 
 model InvestmentPosition {
-  id        String   @id @default(cuid())
+  id        String  @id @default(cuid())
   accountId String
-  account   Account  @relation(fields: [accountId], references: [id])
-  
-  ticker    String?  // Optional for Manual assets
-  name      String   // Display name (e.g. "Apple Inc" or "Apt 4B")
-  assetClass AssetClass @default(EQUITY)
-  currency  Currency @default(USD)
+  account   Account @relation(fields: [accountId], references: [id])
 
-  quantity  Decimal  @db.Decimal(19, 6)
-  costBasis Decimal  @db.Decimal(19, 4) // Total Cost or Avg Price? Usually Avg Price * Qty = Total Cost. Let's assume Unit Cost Basis.
+  ticker     String? // Optional for Manual assets
+  name       String // Display name (e.g. "Apple Inc" or "Apt 4B")
+  assetClass AssetClass @default(EQUITY)
+  currency   Currency   @default(USD)
+
+  quantity  Decimal @db.Decimal(19, 6)
+  costBasis Decimal @db.Decimal(19, 4) // Total Cost or Avg Price? Usually Avg Price * Qty = Total Cost. Let's assume Unit Cost Basis.
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  deletedAt DateTime?
 }
 
 model PriceHistory {
-  id        String   @id @default(cuid())
-  ticker    String
-  date      DateTime
-  price     Decimal  @db.Decimal(19, 4)
-  currency  Currency
-  
+  id       String   @id @default(cuid())
+  ticker   String
+  date     DateTime
+  price    Decimal  @db.Decimal(19, 4)
+  currency Currency
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
   @@unique([ticker, date])
 }
 
@@ -239,19 +303,27 @@ model RecurringFlow {
   householdId String
   household   Household @relation(fields: [householdId], references: [id])
 
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  deletedAt DateTime?
+
   @@index([householdId, isActive]) // For fetching active flow plans
 }
 
 model BudgetLimit {
-  id          String    @id @default(cuid())
-  amount      Decimal   @db.Decimal(19, 4)
-  period      Frequency @default(MONTHLY)
-  
-  categoryId  String
-  category    Category  @relation(fields: [categoryId], references: [id])
-  
+  id     String    @id @default(cuid())
+  amount Decimal   @db.Decimal(19, 4)
+  period Frequency @default(MONTHLY)
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
   householdId String
   household   Household @relation(fields: [householdId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  deletedAt DateTime?
 
   @@unique([categoryId, period]) // One limit per category per period type
 }
@@ -268,27 +340,35 @@ enum TripRole {
 }
 
 model Trip {
-  id          String       @id @default(cuid())
+  id          String     @id @default(cuid())
   name        String
   startDate   DateTime?
   endDate     DateTime?
-  budgetLimit Decimal?     @db.Decimal(19, 4)
-  status      TripStatus   @default(PLANNING)
-  
-  members     TripMember[]
+  budgetLimit Decimal?   @db.Decimal(19, 4)
+  status      TripStatus @default(PLANNING)
+
+  members      TripMember[]
   transactions Transaction[]
-  invites     TripInvite[]
+  invites      TripInvite[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  deletedAt DateTime?
 }
 
 model TripMember {
-  id        String   @id @default(cuid())
-  role      TripRole @default(GUEST)
-  
-  tripId    String
-  trip      Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
-  
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id   String   @id @default(cuid())
+  role TripRole @default(GUEST)
+
+  tripId String
+  trip   Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  deletedAt DateTime?
 
   @@unique([tripId, userId])
 }
@@ -302,12 +382,33 @@ enum InviteStatus {
 model TripInvite {
   id        String       @id @default(cuid())
   token     String       @unique
-  email     String?      // Optional: specific email invite
+  email     String? // Optional: specific email invite
   expiresAt DateTime
   status    InviteStatus @default(PENDING)
-  
-  tripId    String
-  trip      Trip         @relation(fields: [tripId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime     @default(now())
+  tripId String
+  trip   Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  deletedAt DateTime?
+}
+
+model InvestmentScenario {
+  id     String @id @default(uuid()) // UUIDv7 compliance simulated
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name                String
+  principal           Decimal @db.Decimal(19, 4)
+  monthlyContribution Decimal @db.Decimal(19, 4)
+  apy                 Decimal @db.Decimal(5, 4) // stored as decimal fraction e.g. 0.05
+  years               Int
+  isCompound          Boolean @default(true)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  deletedAt DateTime?
+
+  @@index([userId])
 }

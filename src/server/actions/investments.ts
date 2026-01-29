@@ -84,7 +84,12 @@ export async function refreshPortfolioValues() {
     return { success: true }
 }
 
-export async function createPosition(prevState: any, formData: FormData) {
+import { ActionState } from "@/lib/types"
+import { Account, InvestmentPosition, Currency, AssetClass } from "@prisma/client"
+
+// ... existing fetchPortfolioSummary ...
+
+export async function createPosition(prevState: ActionState, formData: FormData): Promise<ActionState> {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) return { error: "Not authenticated" }
 
@@ -92,8 +97,8 @@ export async function createPosition(prevState: any, formData: FormData) {
     const ticker = formData.get("ticker") as string
     const quantity = Number(formData.get("quantity"))
     const costBasis = Number(formData.get("costBasis"))
-    const assetClass = formData.get("assetClass") as string
-    const currency = formData.get("currency") as string
+    const assetClass = formData.get("assetClass") as AssetClass
+    const currency = formData.get("currency") as Currency
     const accountId = formData.get("accountId") as string
 
     if (!name || !accountId) return { error: "Name and Account are required" }
@@ -105,8 +110,8 @@ export async function createPosition(prevState: any, formData: FormData) {
                 ticker,
                 quantity,
                 costBasis,
-                assetClass: assetClass as any,
-                currency: currency as any,
+                assetClass,
+                currency,
                 accountId
             }
         })
@@ -123,7 +128,7 @@ export async function updateInvestment(
         quantity: number,
         costBasis: number
     }
-) {
+): Promise<ActionState> {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) return { error: "Not authenticated" }
 
@@ -169,7 +174,6 @@ export async function deleteInvestment(id: string) {
 
     await prisma.investmentPosition.delete({ where: { id } })
     revalidatePath("/")
-    // revalidateTag(`portfolio-household-${session.user.householdId}`)
     return { success: true }
 }
 
@@ -216,14 +220,6 @@ export async function capitalizeInvestment(formData: FormData) {
             // 1. Decrement Investment
             const newQuantity = Number(position.quantity) - unitsToSell
             if (newQuantity <= 0) {
-                // Option: Delete or Mark Closed
-                // Let's delete for simplicity of "Cleaning up", 
-                // or we could keep it with 0 quantity if we wanted history preservation.
-                // Given the mission says "completely remove" for delete, let's keep it here 
-                // but strictly update quantity to 0 so it stays in record if desired, 
-                // OR delete if it's fully cashed out. 
-                // Implementation Plan said "If quantity reaches 0, mark as Closed or Archive".
-                // Let's just update to 0.
                 await tx.investmentPosition.update({
                     where: { id: investmentId },
                     data: { quantity: 0 }
@@ -250,16 +246,13 @@ export async function capitalizeInvestment(formData: FormData) {
                     type: "INCOME", // Liquidity event
                     accountId: targetAccountId,
                     householdId: session.user.householdId!,
-                    currency: targetAccount.currency, // Assuming sale is converted to target acct currency
-                    // In real app, might need FX conversion if Investment is USD and Bank is MXN.
-                    // For now, assuming direct value transfer or pre-calc.
-                    // Ideally we should convert 'totalCashValue' if currencies differ.
-                } as any
+                    currency: targetAccount.currency,
+                    spentByUserId: session.user.id
+                }
             })
         })
 
         revalidatePath("/")
-        // revalidateTag(`portfolio-household-${session.user.householdId}`)
         return { success: true }
     } catch (e) {
         return { error: "Capitalization failed" }

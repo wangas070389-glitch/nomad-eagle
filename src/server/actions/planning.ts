@@ -2,6 +2,7 @@
 
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { Frequency } from "@prisma/client"
 import { getServerSession } from "next-auth"
 import { revalidatePath, revalidateTag } from "next/cache"
 
@@ -12,7 +13,7 @@ export async function addRecurringFlow(formData: FormData) {
     const name = formData.get("name") as string
     const amount = Number(formData.get("amount"))
     const type = formData.get("type") as "INCOME" | "EXPENSE"
-    const frequency = formData.get("frequency") as any
+    const frequency = formData.get("frequency") as Frequency
     const startDate = new Date(formData.get("startDate") as string)
 
     if (!name || !amount || !type || !frequency) {
@@ -48,7 +49,7 @@ export async function updateRecurringFlow(formData: FormData) {
     const name = formData.get("name") as string
     const amount = Number(formData.get("amount"))
     const type = formData.get("type") as "INCOME" | "EXPENSE"
-    const frequency = formData.get("frequency") as any
+    const frequency = formData.get("frequency") as Frequency
     const startDate = new Date(formData.get("startDate") as string)
 
     if (!id || !name || !amount || !type || !frequency) {

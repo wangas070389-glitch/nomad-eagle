@@ -16,7 +16,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { createCategoryAction } from "@/server/actions/categories" // Reuse existing action
 
-export function AddCategoryCard({ existingCategories }: { existingCategories: any[] }) {
+import { Category } from "@/lib/types"
+
+export function AddCategoryCard({ existingCategories }: { existingCategories: Category[] }) {
     const [open, setOpen] = useState(false)
     const [name, setName] = useState("")
     const [icon, setIcon] = useState("🏷️")

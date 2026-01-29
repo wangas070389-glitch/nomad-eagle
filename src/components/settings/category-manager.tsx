@@ -8,7 +8,9 @@ import { createCategoryAction, archiveCategory } from "@/server/actions/categori
 import { useActionState, useState } from "react"
 import { Trash2 } from "lucide-react"
 
-export function CategoryManager({ categories }: { categories: any[] }) {
+import { Category } from "@/lib/types"
+
+export function CategoryManager({ categories }: { categories: Category[] }) {
     const [state, action, isPending] = useActionState(createCategoryAction, null)
 
     // Separate System vs Custom

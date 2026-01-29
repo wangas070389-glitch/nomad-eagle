@@ -10,16 +10,18 @@ import { EditInvestmentDialog } from "@/components/dashboard/edit-investment-dia
 import { CapitalizeInvestmentDialog } from "./capitalize-investment-dialog"
 import { DeleteInvestmentDialog } from "./delete-investment-dialog"
 
+import { SafeAccount, InvestmentPositionWithValue } from "@/lib/types"
+
 export function PortfolioSummary({
     summary,
     accounts
 }: {
     summary: {
         totalValueMXN: number,
-        positions: any[],
+        positions: InvestmentPositionWithValue[],
         exchangeRate: number
     },
-    accounts: any[]
+    accounts: SafeAccount[]
 }) {
     const [isPending, startTransition] = useTransition()
 
@@ -113,7 +115,7 @@ export function PortfolioSummary({
                                             })}
                                         </Pie>
                                         <Tooltip
-                                            formatter={(value: any) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(value || 0)}
+                                            formatter={(value: number | undefined) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(value || 0)}
                                             contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                                         />
                                     </PieChart>

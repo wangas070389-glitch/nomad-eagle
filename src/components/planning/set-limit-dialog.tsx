@@ -16,7 +16,9 @@ import { setBudgetLimit } from "@/server/actions/planning"
 import { useState } from "react"
 import { Settings2 } from "lucide-react"
 
-export function SetLimitDialog({ category, currentLimit }: { category: any, currentLimit?: number }) {
+import { Category } from "@/lib/types"
+
+export function SetLimitDialog({ category, currentLimit }: { category: Category, currentLimit?: number }) {
     const [open, setOpen] = useState(false)
 
     async function handleSubmit(formData: FormData) {

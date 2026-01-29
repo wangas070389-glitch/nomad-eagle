@@ -15,7 +15,9 @@ import { Pencil } from "lucide-react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 
-export function EditInvestmentDialog({ position }: { position: any }) {
+import { InvestmentPositionWithValue } from "@/lib/types"
+
+export function EditInvestmentDialog({ position }: { position: InvestmentPositionWithValue }) {
     const [open, setOpen] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const router = useRouter()
