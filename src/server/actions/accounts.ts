@@ -9,10 +9,11 @@ import { ActionState } from "@/lib/types"
 import { AccountType, Currency, Prisma } from "@prisma/client"
 
 // Local definition if not global yet
-type LocalActionState = {
+// Local definition if not global yet
+export type AccountActionState = {
     error?: string
     success?: boolean
-}
+} | null
 
 export async function getAccounts(showArchived = false) {
     const session = await getServerSession(authOptions)
@@ -39,7 +40,7 @@ export async function getAccounts(showArchived = false) {
     }))
 }
 
-export async function createAccount(prevState: LocalActionState, formData: FormData) {
+export async function createAccount(prevState: AccountActionState, formData: FormData) {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) return { error: "Not authenticated" }
 

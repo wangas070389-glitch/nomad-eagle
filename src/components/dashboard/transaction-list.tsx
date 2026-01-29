@@ -184,7 +184,7 @@ export function TransactionList({
                         amount: Number(editingTx.amount),
                         type: editingTx.type,
                         date: new Date(editingTx.date).toISOString().slice(0, 16), // datetime-local format
-                        categoryId: editingTx.category?.name ? editingTx.categoryId : "",
+                        categoryId: editingTx.categoryId || "",
                         accountId: editingTx.account?.id || "",
                     }}
                     onClose={() => setEditingTx(null)}

@@ -177,7 +177,8 @@ export async function getTransactions(page: number = 1, pageSize: number = 50) {
                 select: {
                     id: true,
                     name: true,
-                    email: true
+                    email: true,
+                    avatarUrl: true
                 }
             }
         },

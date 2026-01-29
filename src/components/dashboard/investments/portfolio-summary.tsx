@@ -192,6 +192,6 @@ export function PortfolioSummary({
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     )
 }

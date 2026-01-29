@@ -26,9 +26,9 @@ const registerSchema = z.object({
 export type AuthState = {
     error?: string
     success?: boolean
-}
+} | null
 
-export async function registerUser(prevState: AuthState, formData: FormData) {
+export async function registerUser(prevState: AuthState, formData: FormData): Promise<AuthState> {
     const email = formData.get("email") as string
     const password = formData.get("password") as string
     const inviteCode = formData.get("inviteCode") as string

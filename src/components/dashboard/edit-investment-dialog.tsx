@@ -29,11 +29,11 @@ export function EditInvestmentDialog({ position }: { position: InvestmentPositio
 
         const res = await updateInvestment(position.id, { quantity, costBasis })
         setIsLoading(false)
-        if (res.success) {
+        if (res?.success) {
             setOpen(false)
             router.refresh()
         } else {
-            alert(res.error)
+            alert(res?.error || "Failed to update")
         }
     }
 

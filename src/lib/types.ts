@@ -3,7 +3,7 @@ export type ActionState = {
     success?: boolean
     message?: string
     [key: string]: unknown
-}
+} | null
 
 import { Prisma } from "@prisma/client"
 
@@ -11,7 +11,7 @@ export type TransactionWithRelations = Prisma.TransactionGetPayload<{
     include: {
         category: true,
         account: { select: { id: true, name: true, currency: true, ownerId: true } },
-        spentBy: { select: { id: true, name: true, email: true } }
+        spentBy: { select: { id: true, name: true, email: true, avatarUrl: true } }
     }
 }>
 

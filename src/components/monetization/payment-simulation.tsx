@@ -19,7 +19,7 @@ export function PaymentSimulation({ onSuccess }: { onSuccess: () => void }) {
         const res = await upgradeToPro()
 
         setIsLoading(false)
-        if (res.error) {
+        if (res?.error) {
             setError(res.error)
         } else {
             onSuccess()

@@ -17,7 +17,7 @@ function RegisterContent() {
     const inviteCode = searchParams.get("invite")
 
     // useActionState signature: (action, initialState)
-    const [state, action, isPending] = useActionState(registerUser, null)
+    const [state, action, isPending] = useActionState(registerUser, { error: "", success: false })
 
     useEffect(() => {
         if (state?.success) {

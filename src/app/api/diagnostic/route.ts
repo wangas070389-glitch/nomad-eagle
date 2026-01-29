@@ -40,7 +40,7 @@ export async function GET() {
         if (user?.householdId) {
             const household = await prisma.household.findUnique({
                 where: { id: user.householdId },
-                include: { accounts: true, transactions: { take: 1 } }
+                include: { transactions: { take: 1 } }
             })
             log("Household Fetch", !!household, household ? { name: household.name } : null)
         }

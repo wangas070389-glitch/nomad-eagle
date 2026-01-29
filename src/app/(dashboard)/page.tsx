@@ -98,7 +98,7 @@ export default async function DashboardPage() {
                         members={householdMembers}
                         currentUserId={currentUserId}
                     />
-                    <AddInvestmentDialog accounts={accountOptions} />
+                    <AddInvestmentDialog accounts={accounts} />
 
                     <Dialog>
                         <DialogTrigger asChild>
@@ -178,7 +178,7 @@ export default async function DashboardPage() {
                 </div>
 
                 <div className="w-full xl:col-span-4 space-y-6">
-                    <PortfolioSummary summary={portfolio} accounts={accountOptions} />
+                    <PortfolioSummary summary={portfolio} accounts={accounts} />
                     <BudgetProgress />
                 </div>
             </div>
