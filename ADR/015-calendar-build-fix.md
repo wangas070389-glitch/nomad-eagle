@@ -32,9 +32,8 @@ We will **Downgrade to `react-day-picker` v8.10.1**.
 -   **Pros**: Immediate build fix. Consistent styling.
 -   **Cons**: We are on an "older" major version (but it is the LTS for Shadcn currently).
 
-## Addendum: Peer Dependency Conflict (2026-02-07)
-**Incident**: Vercel build failed because `react-day-picker` v8 requires `date-fns` v2 or v3, but we installed `date-fns` v4.
-**Resolution**: Downgrade `date-fns` to `^3.6.0`.
--   This satisfies the peer dependency cleanly.
--   We are not using v4-specific features.
--   This removes the need for `--legacy-peer-deps` which is unreliable in CI.
+## Addendum: React 19 Peer Dependency Conflict (2026-02-07)
+**Incident**: `npm install` failed again because `react-day-picker` v8 specifies `peerDependencies: react@^18`, but we are running React 19.
+**Resolution**: Use `--legacy-peer-deps`.
+-   **Risk**: Low. React 19 is designed to run React 18 components.
+-   **Action**: Force install `date-fns` v3 with legacy peer deps.
