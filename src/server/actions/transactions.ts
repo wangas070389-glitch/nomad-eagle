@@ -243,7 +243,8 @@ export async function createTransaction(prevState: ActionState, formData: FormDa
     }
 }
 
-export async function getTransactions(page: number = 1, pageSize: number = 50) {
+// allow explicit skip, or fallback to page calc
+export async function getTransactions(page: number = 1, pageSize: number = 50, skip?: number) {
     const session = await getServerSession(authOptions)
     if (!session?.user?.householdId) return []
 
@@ -286,7 +287,7 @@ export async function getTransactions(page: number = 1, pageSize: number = 50) {
         orderBy: {
             date: 'desc'
         },
-        skip: (page - 1) * pageSize,
+        skip: skip !== undefined ? skip : (page - 1) * pageSize,
         take: pageSize
     })
 

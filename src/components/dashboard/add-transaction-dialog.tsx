@@ -15,6 +15,7 @@ import { createTransaction } from "@/server/actions/transactions"
 import { updateTransaction } from "@/server/actions/transaction-ops"
 import { useActionState, useState, useEffect } from "react"
 import { CategorySelect, type CategoryOption } from "./category-select"
+import { SmartDatePicker } from "./smart-date-picker"
 
 import { SafeAccount, AccountOption } from "@/lib/types"
 
@@ -67,6 +68,7 @@ export function AddTransactionDialog({
 
     const [selectedCategory, setSelectedCategory] = useState<string>(initialData?.categoryId || "")
     const [type, setType] = useState<"INCOME" | "EXPENSE" | "TRANSFER">(initialData?.type || "EXPENSE")
+    const [date, setDate] = useState<Date | undefined>(initialData?.date ? new Date(initialData.date) : new Date())
 
     const showSpenderSelect = members.length > 1
 
@@ -109,7 +111,11 @@ export function AddTransactionDialog({
 
                     <div className="space-y-2">
                         <Label>Date</Label>
-                        <Input name="date" type="datetime-local" required defaultValue={initialData?.date ? new Date(initialData.date).toISOString().slice(0, 16) : ""} />
+                        <SmartDatePicker
+                            date={date}
+                            setDate={setDate}
+                        />
+                        <input type="hidden" name="date" value={date ? date.toISOString() : ""} />
                     </div>
 
                     {showSpenderSelect ? (

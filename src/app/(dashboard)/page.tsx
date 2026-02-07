@@ -7,10 +7,11 @@ import { getPortfolioSummary } from "@/server/actions/investments"
 import { getServerSession } from "next-auth"
 import { redirect } from "next/navigation"
 import { OnboardingForms } from "@/components/dashboard/onboarding-forms"
-import { AccountCard } from "@/components/dashboard/account-card"
+// import { AccountCard } from "@/components/dashboard/account-card" // Removed, used in tabs now
 import { AddAccountForm } from "@/components/dashboard/add-account-form"
 import { AddTransactionDialog } from "@/components/dashboard/add-transaction-dialog"
 import { TransactionList } from "@/components/dashboard/transaction-list"
+import { AccountListTabs } from "@/components/dashboard/account-list-tabs"
 import { AddInvestmentDialog } from "@/components/dashboard/investments/add-investment-dialog"
 import { PortfolioSummary } from "@/components/dashboard/investments/portfolio-summary"
 import { BudgetProgress } from "@/components/dashboard/budget/budget-progress"
@@ -153,18 +154,12 @@ export default async function DashboardPage() {
             <div className="flex flex-col xl:grid xl:grid-cols-12 gap-6">
                 <div className="w-full xl:col-span-8 space-y-6">
                     <div>
-                        <h3 className="text-lg font-medium mb-4">Your Accounts</h3>
-                        {accounts.length === 0 ? (
-                            <div className="text-center p-8 border border-dashed rounded-lg text-muted-foreground">
-                                No accounts yet. Add one to get started.
-                            </div>
-                        ) : (
-                            <div className="grid gap-4 md:grid-cols-2">
-                                {accounts.map((acc) => (
-                                    <AccountCard key={acc.id} account={acc} />
-                                ))}
-                            </div>
-                        )}
+                        <h3 className="text-lg font-medium mb-4 sr-only">Your Accounts</h3>
+                        <AccountListTabs
+                            accounts={accounts} // accounts already has balance from getAccounts
+                            members={householdMembers}
+                            currentUserId={currentUserId}
+                        />
                     </div>
 
                     <WealthSimulator />

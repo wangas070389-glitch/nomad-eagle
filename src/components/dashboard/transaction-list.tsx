@@ -49,7 +49,9 @@ export function TransactionList({
         // We can't import server action directly inside useEffect if not passed as prop?
         // Actually we can import it at top level.
         const { getTransactions } = await import("@/server/actions/transactions")
-        const newTxs = await getTransactions(nextPage, 50)
+        // Fix for "Ghost Gap" (ADR 012): Use current length as skip offset
+        // items.length = number of items currently shown
+        const newTxs = await getTransactions(nextPage, 50, items.length)
 
         if (newTxs.length < 50) {
             setHasMore(false)

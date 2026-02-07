@@ -1,6 +1,6 @@
 # CODEX: The DNA of Nomad Eagle
 
-Generated on: 2026-02-07T16:44:27.778Z
+Generated on: 2026-02-07T22:18:30.742Z
 
 ## 1. Organism Identity (Metadata)
 
@@ -27,12 +27,15 @@ Generated on: 2026-02-07T16:44:27.778Z
   "class-variance-authority": "^0.7.1",
   "clsx": "^2.1.1",
   "cmdk": "^1.1.1",
+  "date-fns": "^4.1.0",
   "html-to-image": "^1.11.13",
   "jspdf": "^4.0.0",
   "lucide-react": "^0.563.0",
   "next": "16.1.4",
   "next-auth": "^4.24.13",
+  "openai": "^6.18.0",
   "react": "19.2.3",
+  "react-day-picker": "^9.13.1",
   "react-dom": "19.2.3",
   "recharts": "^3.7.0",
   "tailwind-merge": "^3.4.0",
@@ -47,10 +50,12 @@ Generated on: 2026-02-07T16:44:27.778Z
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  extensions = [pgvector(map: "vector")]
 }
 
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 enum Currency {
@@ -227,6 +232,7 @@ model Transaction {
   amount      Decimal         @db.Decimal(19, 4)
   currency    Currency
   description String
+  descriptionEmbedding Unsupported("vector(1536)")?
   type        TransactionType
 
   categoryId String?
@@ -521,6 +527,9 @@ model InvestmentScenario {
 
 ### scenario.ts
 - `saveScenario`
+
+### search.ts
+- `searchTransactions`
 
 ### security.ts
 - `rotatePassword`
@@ -979,6 +988,12 @@ Final Survival Algorithms
 │   ├── 0005-household-isolation.md
 │   ├── 0006-secure-investment-ops.md
 │   ├── 0007-secure-household-invites.md
+│   ├── 0008-protocol-32-evolution.md
+│   ├── 0009-semantic-search-ui.md
+│   ├── 010-temporal-budgeting.md
+│   ├── 012-pagination-strategy.md
+│   ├── 013-household-account-grouping.md
+│   ├── 014-simplified-date-picker.md
 │   └── template.md
 ├── agentic.config.ts
 ├── audit.config.ts
@@ -1028,6 +1043,11 @@ Final Survival Algorithms
 │   ├── 0001-idor-investments.md
 │   ├── 0002-idor-transactions.md
 │   ├── 0007-weak-household-codes.md
+│   ├── 0008-vector-risks.md
+│   ├── 010-temporal-budget-risks.md
+│   ├── 011-transaction-dump.md
+│   ├── 012-pagination-gaps.md
+│   ├── 013-account-grouping-risks.md
 │   └── template.md
 ├── reset-admin.js
 ├── Schema
@@ -1107,6 +1127,7 @@ Final Survival Algorithms
 │   │   │   └── user-actions.tsx
 │   │   ├── dashboard
 │   │   │   ├── account-card.tsx
+│   │   │   ├── account-list-tabs.tsx
 │   │   │   ├── add-account-form.tsx
 │   │   │   ├── add-transaction-dialog.tsx
 │   │   │   ├── budget
@@ -1122,6 +1143,7 @@ Final Survival Algorithms
 │   │   │   │   └── portfolio-summary.tsx
 │   │   │   ├── onboarding-forms.tsx
 │   │   │   ├── report-generator.tsx
+│   │   │   ├── smart-date-picker.tsx
 │   │   │   ├── transaction-actions.tsx
 │   │   │   └── transaction-list.tsx
 │   │   ├── forms
@@ -1142,6 +1164,7 @@ Final Survival Algorithms
 │   │   │   ├── wealth-recommender-card.tsx
 │   │   │   └── wealth-simulator.tsx
 │   │   ├── providers.tsx
+│   │   ├── SemanticSearch.tsx
 │   │   ├── settings
 │   │   │   ├── category-manager.tsx
 │   │   │   ├── household-settings.tsx
@@ -1156,6 +1179,7 @@ Final Survival Algorithms
 │   │   │   ├── avatar.tsx
 │   │   │   ├── badge.tsx
 │   │   │   ├── button.tsx
+│   │   │   ├── calendar.tsx
 │   │   │   ├── card.tsx
 │   │   │   ├── command.tsx
 │   │   │   ├── dialog.tsx
@@ -1178,6 +1202,7 @@ Final Survival Algorithms
 │   ├── lib
 │   │   ├── auth.ts
 │   │   ├── constants.ts
+│   │   ├── embedding.ts
 │   │   ├── export.ts
 │   │   ├── format.ts
 │   │   ├── logger.ts
@@ -1207,6 +1232,7 @@ Final Survival Algorithms
 │   │   │   ├── planning.ts
 │   │   │   ├── profile.ts
 │   │   │   ├── scenario.ts
+│   │   │   ├── search.ts
 │   │   │   ├── security.ts
 │   │   │   ├── settings.ts
 │   │   │   ├── simulation.ts
