@@ -25,3 +25,9 @@
 **Enforce Strict Versioning** for UI libraries.
 -   Execute the downgrade immediately.
 -   Lock the version in `package.json`.
+
+## 5. Incident Log (2026-02-07)
+**Issue**: CI Build Failure due to Dependency Race Condition.
+**Analysis**: The `npm install` process was run asynchronously and had not completed writing `package.json` updates before the `git commit` command was executed. This resulted in the remote repository remaining on the old, conflicting version (`date-fns` v4) despite the local environment being fixed.
+**Correction**: Ensured synchronous execution of `npm install` and verified file system state before committing.
+**Lesson**: Always verify `git status` before committing after a background install operation.
