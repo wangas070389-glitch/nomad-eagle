@@ -103,6 +103,12 @@ export async function createPosition(prevState: ActionState, formData: FormData)
 
     if (!name || !accountId) return { error: "Name and Account are required" }
 
+    // Security Fix (ADR 0006): Verify Account Ownership
+    const account = await prisma.account.findUnique({ where: { id: accountId } })
+    if (!account || account.householdId !== session.user.householdId) {
+        return { error: "Unauthorized: Account not found or access denied" }
+    }
+
     try {
         await prisma.investmentPosition.create({
             data: {

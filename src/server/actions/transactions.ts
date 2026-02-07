@@ -7,6 +7,7 @@ import { getServerSession } from "next-auth"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { ActionState } from "@/lib/types"
+import { generateEmbedding } from "@/lib/embedding"
 
 const createTransactionSchema = z.object({
     amount: z.number().positive(),
@@ -14,8 +15,17 @@ const createTransactionSchema = z.object({
     description: z.string().max(100),
     type: z.enum(["INCOME", "EXPENSE", "TRANSFER"]),
     categoryId: z.string().optional(),
-    accountId: z.string(),
+    accountId: z.string().optional(),
+    fromAccountId: z.string().optional(),
+    toAccountId: z.string().optional(),
     spentByUserId: z.string()
+}).refine(data => {
+    if (data.type === 'TRANSFER') {
+        return !!data.fromAccountId && !!data.toAccountId && data.fromAccountId !== data.toAccountId
+    }
+    return !!data.accountId
+}, {
+    message: "Invalid account selection for transaction type"
 })
 
 export async function seedCategories(formData: FormData) {
@@ -75,7 +85,9 @@ export async function createTransaction(prevState: ActionState, formData: FormDa
         description: formData.get("description"),
         type: formData.get("type"),
         categoryId: formData.get("categoryId") || undefined,
-        accountId: formData.get("accountId"),
+        accountId: formData.get("accountId") || undefined,
+        fromAccountId: formData.get("fromAccountId") || undefined,
+        toAccountId: formData.get("toAccountId") || undefined,
         spentByUserId: formData.get("spentByUserId") || session.user.id
     })
 
@@ -83,56 +95,145 @@ export async function createTransaction(prevState: ActionState, formData: FormDa
         return { error: "Invalid input: " + parseResult.error.issues.map(i => i.message).join(", ") }
     }
 
-    const { amount, date, description, type, categoryId, accountId, spentByUserId } = parseResult.data
+    const { amount, date, description, type, categoryId, accountId, fromAccountId, toAccountId, spentByUserId } = parseResult.data
 
-    // Validate Category if provided
+    // Common validations
     if (categoryId) {
         const category = await prisma.category.findUnique({ where: { id: categoryId } })
         if (!category) return { error: "Invalid category" }
-        // Optional: strict check if category belongs to household or system
         if (category.householdId && category.householdId !== session.user.householdId) {
             return { error: "Unauthorized category" }
         }
     }
 
-    // Logic: Verify Account Access
-    // If accountId is joint (ownerId=null) -> OK
-    // If accountId is personal -> Must be ownerId=session.user.id
-    const account = await prisma.account.findUnique({ where: { id: accountId } })
-    if (!account) return { error: "Account not found" }
-
-    if (account.ownerId && account.ownerId !== session.user.id) {
-        return { error: "Unauthorized access to this account" }
-    }
-
-    // Atomic Transaction: Create Record + Update Balance
     try {
-        await prisma.$transaction(async (tx) => {
-            // 1. Create Transaction
-            await tx.transaction.create({
-                data: {
-                    amount,
-                    date,
-                    description,
-                    type,
-                    categoryId,
-                    accountId,
-                    currency: account.currency,
-                    spentByUserId,
+        if (type === "TRANSFER") {
+            const fromAccount = await prisma.account.findUnique({ where: { id: fromAccountId } })
+            const toAccount = await prisma.account.findUnique({ where: { id: toAccountId } })
+
+            if (!fromAccount || !toAccount) return { error: "One or both accounts not found" }
+
+            // Check access
+            if (fromAccount.householdId !== session.user.householdId ||
+                toAccount.householdId !== session.user.householdId) {
+                return { error: "Unauthorized: Account belongs to another household" }
+            }
+            // Personal ownership check (secondary)
+            if ((fromAccount.ownerId && fromAccount.ownerId !== session.user.id) ||
+                (toAccount.ownerId && toAccount.ownerId !== session.user.id)) {
+                return { error: "Unauthorized access to one of the accounts" }
+            }
+
+            await prisma.$transaction(async (tx) => {
+                // 1. Withdrawal from Source
+                const tx1 = await tx.transaction.create({
+                    data: {
+                        amount: -amount, // Negative for outflow
+                        date,
+                        description: `Transfer to ${toAccount.name}: ${description}`,
+                        type: "TRANSFER",
+                        categoryId,
+                        accountId: fromAccountId,
+                        currency: fromAccount.currency,
+                        spentByUserId,
+                        householdId: session.user.householdId
+                    }
+                })
+
+                // Generate Embedding (Async - ideally queued, but inline for MVP)
+                try {
+                    const embedding = await generateEmbedding(`Transfer to ${toAccount.name}: ${description}`)
+                    const vector = `[${embedding.join(",")}]`
+                    await tx.$executeRawUnsafe(
+                        `UPDATE "Transaction" SET "descriptionEmbedding" = '${vector}'::vector WHERE id = '${tx1.id}'`
+                    )
+                } catch (e) {
+                    console.error("Failed to generate embedding for tx1", e)
                 }
+
+                await tx.account.update({
+                    where: { id: fromAccountId },
+                    data: { balance: { decrement: amount } }
+                })
+
+                // 2. Deposit to Destination
+                const tx2 = await tx.transaction.create({
+                    data: {
+                        amount: amount, // Positive for inflow
+                        date,
+                        description: `Transfer from ${fromAccount.name}: ${description}`,
+                        type: "TRANSFER",
+                        categoryId,
+                        accountId: toAccountId,
+                        currency: toAccount.currency,
+                        spentByUserId,
+                        householdId: session.user.householdId
+                    }
+                })
+
+                try {
+                    const embedding = await generateEmbedding(`Transfer from ${fromAccount.name}: ${description}`)
+                    const vector = `[${embedding.join(",")}]`
+                    await tx.$executeRawUnsafe(
+                        `UPDATE "Transaction" SET "descriptionEmbedding" = '${vector}'::vector WHERE id = '${tx2.id}'`
+                    )
+                } catch (e) {
+                    console.error("Failed to generate embedding for tx2", e)
+                }
+
+                await tx.account.update({
+                    where: { id: toAccountId },
+                    data: { balance: { increment: amount } }
+                })
             })
 
-            // 2. Update Balance
-            // If Income -> Add. If Expense -> Subtract.
+        } else {
+            // Standard Income/Expense
+            const account = await prisma.account.findUnique({ where: { id: accountId } })
+            if (!account) return { error: "Account not found" }
+
+            // Security Fix (ADR 0005): Enforce Household Isolation
+            if (account.householdId !== session.user.householdId) {
+                return { error: "Unauthorized access to this account" }
+            }
+
+            if (account.ownerId && account.ownerId !== session.user.id) {
+                return { error: "Unauthorized access to this account" }
+            }
+
             const balanceChange = type === "INCOME" ? amount : -amount
 
-            await tx.account.update({
-                where: { id: accountId },
-                data: {
-                    balance: { increment: balanceChange }
+            await prisma.$transaction(async (tx) => {
+                const newTx = await tx.transaction.create({
+                    data: {
+                        amount,
+                        date,
+                        description,
+                        type,
+                        categoryId,
+                        accountId,
+                        currency: account.currency,
+                        spentByUserId,
+                        householdId: session.user.householdId
+                    }
+                })
+
+                try {
+                    const embedding = await generateEmbedding(description)
+                    const vector = `[${embedding.join(",")}]`
+                    await tx.$executeRawUnsafe(
+                        `UPDATE "Transaction" SET "descriptionEmbedding" = '${vector}'::vector WHERE id = '${newTx.id}'`
+                    )
+                } catch (e) {
+                    console.error("Failed to generate embedding for newTx", e)
                 }
+
+                await tx.account.update({
+                    where: { id: accountId },
+                    data: { balance: { increment: balanceChange } }
+                })
             })
-        })
+        }
 
         revalidatePath("/dashboard")
         return { success: true }

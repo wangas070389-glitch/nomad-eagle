@@ -1,0 +1,86 @@
+I. The Constitutional Foundation (Pillar: Aethereum/Nexus)
+These protocols establish the fundamental laws, governance, and operating states of the system.
+• Protocol 0: The Machine Constitution (v1.1)
+    ◦ Function: The supreme law of the swarm that defines immutable principles such as sovereign cognition, zero insertion (agents write code, humans do not), and cryptographic history. It establishes hard limits like the "Kill Switch" at the infrastructure level.
+• Protocol 1: God Audit (The True Sight v1.1)
+    ◦ Function: Validates code quality not just by coverage, but by "Mutation Score" (survival against active sabotage) and cognitive complexity. It enforces "True Sight," ensuring tests are not hollow.
+• Protocol 2: Black Box Triage (The Smart Gatekeeper v1.1)
+    ◦ Function: A entropy suppression mechanism that enforces martial law based on system metrics (Green/Yellow/Red states). It prevents "Trojan Horse" features disguised as refactors and enforces debt payment.
+• Protocol 18: Consensus (The Immutable Ledger)
+    ◦ Function: A cryptographic governance system that validates authority for architectural changes. It demands "Architecture Decision Records" (ADR) and weighted voting based on domain sovereignty to prevent "rubber stamping".
+• Protocol 20: Ethos (The Kill Switch)
+    ◦ Function: The axiomatic alignment system that acts as the conscience of the machine. It enforces "Human Sovereignty" and business invariants over technical optimization, preventing the system from destroying data to improve speed.
+• Protocol 22: Override (The Nuclear Football)
+    ◦ Function: An emergency suspension mechanism allowing humans to bypass all defenses using multi-signature keys. Usage incurs a "Debt Bond" that blocks future features until resolved.
+• Protocol 33: The Judge (Authority Engine)
+    ◦ Function: The governance engine that validates compliance with policies (using Open Policy Agent) and manages cryptographic sign-offs from authorized humans before deployment.
+• Protocol 36: The Council (The Preemptive Scheduler)
+    ◦ Function: The "Operating System" kernel that resolves conflicts between agents. It uses a "Ring Architecture" to prioritize safety agents (like Rewind) over maintenance agents (like Healer).
+II. OMEGA: Structure & Logic
+These protocols define the anatomy, data, and logic of the software.
+• Protocol 4: Topology (The Gravity Well)
+    ◦ Function: Dictates structural integrity and dependency flow (imports must flow inward). It separates the system into Bedrock, Core, and Edge, preventing the UI from touching the database directly.
+• Protocol 5: Bedrock (The Granite Standard)
+    ◦ Function: Governs data sovereignty, enforcing the use of UUIDv7 for scalability and "Cold Vault" archiving for GDPR compliance. It mandates that the database remains "dumb," with no business logic inside.
+• Protocol 6: The Core (Hermetic Determinism)
+    ◦ Function: Ensures business logic is hermetic and pure, strictly forbidding external dependencies like DB access or HTTP layers within the core. It enforces the use of Value Objects and the Result Pattern over exceptions.
+• Protocol 7: The Edge (The Airlock)
+    ◦ Function: Acts as the interface adapter that sanitizes inputs using strict schemas (Zod) before passing them to the Core. It enforces a "Parse, Don't Validate" rule to keep controllers dumb.
+• Protocol 8: Agentic (The Neural Link)
+    ◦ Function: Defines how the system exposes "Tools" to other AIs, requiring semantic typing and specific safety labels to prevent hallucinations and unauthorized destructive actions.
+• Protocol 9: Anatomy (The Surgeon)
+    ◦ Function: The manual for dissecting monolithic systems into "Cellular Divisions". It enforces strict table sovereignty (one table, one owner) and prefers code duplication over incorrect abstractions.
+III. NARCISO: Physics & Experience
+These protocols govern the user interface and sensory experience.
+• Protocol 10: Anti-Brick (Kinetic Performance)
+    ◦ Function: The "Physics of the Interface," ensuring the main thread never freezes. It mandates optimistic UI with automatic rollback strategies and forbids layout shifts.
+• Protocol 11: The Mirror (Mathematical Engineering)
+    ◦ Function: Prohibits "opinions" in design, enforcing a strict mathematical grid (4pt) and dynamic color systems (OKLCH). It uses "The Breadboard Test" to stress-test layouts with chaotic data. (Note: Protocol 34 is also named "The Mirror" but serves a semantic verification function).
+• Protocol 12: Morph (Spatial Continuity)
+    ◦ Function: Dictates that objects must preserve spatial identity during state changes (no teleportation). It restricts animations to GPU-cheap properties (transform/opacity) and enforces vestibular safety standards.
+IV. GHOST: Defense & Immunity
+These protocols constitute the system's immune system and observability.
+• Protocol 13: Shield (Zero-Trust Defense)
+    ◦ Function: Assumes the network is already compromised. It implements "Intent Signatures" for internal traffic, freezes the runtime environment to prevent prototype pollution, and aggressively redacts PII from logs.
+• Protocol 14: Panopticon (Distributed Tracing)
+    ◦ Function: Establishes total observability, mandating that every event must be traceable via propagated IDs. It uses AsyncLocalStorage to maintain context and strictly limits metric cardinality.
+• Protocol 15: Babel (Global Adaptability)
+    ◦ Function: Ensures cultural agnosticism, rejecting "default languages" or timezones. It mandates the use of ICU MessageFormat for translations and "Elastic Containers" for text expansion.
+• Protocol 16: GitOps (The Iron State)
+    ◦ Function: Establishes Git as the single source of truth. It implements "Self-Heal" mechanisms that revert manual changes (ClickOps) immediately and requires immutable image tags (SHA-256).
+• Protocol 17: Sentinel (Semantic Code Audit)
+    ◦ Function: An AI reviewer that analyzes the meaning of code changes to detect logic bombs or architectural drift. It separates instructions from data to prevent prompt injection attacks.
+V. CHRONOS: Time & Causal Control
+These protocols manage time, history, and prediction.
+• Protocol 26: Rewind (The Time Machine)
+    ◦ Function: A temporal forensics protocol that allows the system to replay historical events in a deterministic simulation. It uses a "Ghost Mode" to prevent side effects (like sending emails) during replay.
+• Protocol 27: Oracle (The Clairvoyant)
+    ◦ Function: Implements "Anticipatory Compute," pre-fetching data based on user intent (e.g., mouse velocity) before a click occurs. It operates within a strict "Speculation Budget" to avoid resource exhaustion.
+VI. EXTERNA & EVOLUTION (The Agents)
+These protocols govern external relations, self-improvement, and agent behaviors.
+• Protocol 3: The Autonomic Ferryman (Ship of Theseus)
+    ◦ Function: An automated migration engine that transmutes legacy code into the new architecture using "Shadow Duels" to verify exact behavior before switching traffic.
+• Protocol 19: Kayzen (Systemic Self-Improvement)
+    ◦ Function: Ensures that every error leads to a structural improvement. It prohibits closing incidents without a "Systemic Fix" (like a new linter rule) and a reproduction test case.
+• Protocol 21: Federation (The Airlock)
+    ◦ Function: Governs diplomacy with external systems, enforcing asynchronous communication and "Anti-Corruption Layers" to validate external data before it touches the Core.
+• Protocol 23: Legacy (The Sarcophagus)
+    ◦ Function: A succession plan that ensures the system can die with dignity. It mandates that business rules be decoupled from code and that data remains exportable in open standards (Parquet).
+• Protocol 24: Maieutics (The Socratic System)
+    ◦ Function: An algorithmic mentorship system that translates error messages into educational lessons for developers, using "Verbosity Decay" to adapt to the user's expertise.
+• Protocol 25: Thermodynamics (Resource Governance)
+    ◦ Function: A "FinOps" protocol that treats energy and money as finite resources. It enforces "Scale to Zero" policies and uses a "Reaper" to terminate zombie resources.
+• Protocol 28: The Sentry (Contextual Anomaly)
+    ◦ Function: An active observability agent that hunts for statistical deviations rather than fixed thresholds. It performs causality checks to avoid false positives from external provider failures.
+• Protocol 29: The Cartographer (Structural Observability)
+    ◦ Function: Maintains a "mirror of reality" by continuously analyzing code and infrastructure state. It detects drift between the code (map) and the cloud (territory).
+• Protocol 30: The Herald (Signal-to-Noise)
+    ◦ Function: Manages human attention by deduplicating alerts and prioritizing signals. It acts as the "Human Interface" for the swarm.
+• Protocol 31: The Healer (Deterministic Refactoring)
+    ◦ Function: A repair agent that refactors code to pay down technical debt. It is strictly limited to touching code with 100% test coverage to ensure safety.
+• Protocol 32: The Architect (Value Chain Optimizer)
+    ◦ Function: A strategic agent that proposes technological evolution based on "Wardley Mapping" and ROI, avoiding hype-driven development.
+• Protocol 34: The Mirror (Semantic & State Verifier)
+    ◦ Function: A semantic auditor that verifies if the UI is lying to the user (e.g., Optimistic UI vs. DB State). Note: Distinct from Protocol 11, which focuses on visual/mathematical consistency.
+• Protocol 35: The Library (Interactive Dojo)
+    ◦ Function: A training system that replaces static documentation with "Interactive Dojos" and simulations, testing new engineers with real historical bugs.

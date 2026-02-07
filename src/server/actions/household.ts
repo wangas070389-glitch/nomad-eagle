@@ -6,6 +6,7 @@ import { getServerSession } from "next-auth"
 import { revalidatePath, revalidateTag } from "next/cache"
 
 import { ActionState } from "@/lib/types"
+import { randomBytes } from "crypto"
 
 export async function generateInviteCode() {
     const session = await getServerSession(authOptions)
@@ -14,12 +15,21 @@ export async function generateInviteCode() {
     const householdId = session.user.householdId
 
     // Generate simple 6-char code (e.g. ABX-129)
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    const nums = "0123456789"
-    let code = ""
-    for (let i = 0; i < 3; i++) code += chars.charAt(Math.floor(Math.random() * chars.length))
-    code += "-"
-    for (let i = 0; i < 3; i++) code += nums.charAt(Math.floor(Math.random() * nums.length))
+    // Secure Fix (ADR 0007): High Entropy Code
+    // Format: XXXX-XXXX-XXXX (12 chars total + dashes)
+    const crypto = require("crypto")
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    const length = 12
+    const randomBytes = crypto.randomBytes(length)
+
+    let secureCode = ""
+    for (let i = 0; i < length; i++) {
+        const index = randomBytes[i] % chars.length
+        secureCode += chars[index]
+        if ((i + 1) % 4 === 0 && i !== length - 1) secureCode += "-"
+    }
+
+    const code = secureCode // e.g. "A9B2-X5Y1-8W3Z"
 
     try {
         await prisma.household.update({

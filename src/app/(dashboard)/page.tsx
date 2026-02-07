@@ -25,6 +25,7 @@ import {
     DialogTrigger
 } from "@/components/ui/dialog"
 import { ReportGenerator } from "@/components/dashboard/report-generator"
+import { SemanticSearch } from "@/components/SemanticSearch"
 
 export default async function DashboardPage() {
     const session = await getServerSession(authOptions)
@@ -53,7 +54,7 @@ export default async function DashboardPage() {
     ] = await Promise.all([
         getAccounts(),
         getCategories(),
-        getTransactions(),
+        getTransactions(1, 5),
         getPortfolioSummary(),
         getHouseholdMembers()
     ])
@@ -116,6 +117,8 @@ export default async function DashboardPage() {
                     </Dialog>
                 </div>
             </div>
+
+            <SemanticSearch />
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Card>

@@ -4,14 +4,21 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { getServerSession } from "next-auth"
 
-export async function getBudgetProgress() {
+export async function getBudgetProgress(referenceDate?: Date) {
     const session = await getServerSession(authOptions)
     if (!session?.user?.householdId) return []
 
     const householdId = session.user.householdId
-    const now = new Date()
+    // Use client-provided date or fallback to server now
+    // If referenceDate is provided, usage depends on if it's already adjusted or just a timestamp.
+    // Ideally we want the month relative to the user.
+    const now = referenceDate ? new Date(referenceDate) : new Date()
+
+    // Calculate start/end based on 'now'
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    // Adjust endOfMonth to be 23:59:59.999 to cover the full last day
+    endOfMonth.setHours(23, 59, 59, 999)
 
     // 1. Get Limits
     const limits = await prisma.budgetLimit.findMany({

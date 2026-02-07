@@ -1,10 +1,12 @@
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  extensions = [pgvector(map: "vector")]
 }
 
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 enum Currency {
@@ -181,6 +183,7 @@ model Transaction {
   amount      Decimal         @db.Decimal(19, 4)
   currency    Currency
   description String
+  descriptionEmbedding Unsupported("vector(1536)")?
   type        TransactionType
 
   categoryId String?

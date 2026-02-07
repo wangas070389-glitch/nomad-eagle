@@ -88,6 +88,7 @@ export async function deleteTransaction(id: string) {
 // No, I should implement it.
 
 import { ActionState } from "@/lib/types"
+import { generateEmbedding } from "@/lib/embedding"
 
 // ... existing deleteTransaction ...
 
@@ -183,6 +184,16 @@ export async function updateTransaction(id: string, prevState: ActionState, form
                         currency: newAcc.currency
                     }
                 })
+
+                try {
+                    const embedding = await generateEmbedding(description)
+                    const vector = `[${embedding.join(",")}]`
+                    await txPrisma.$executeRawUnsafe(
+                        `UPDATE "Transaction" SET "descriptionEmbedding" = '${vector}'::vector WHERE id = '${id}'`
+                    )
+                } catch (e) {
+                    console.error("Failed to update embedding", e)
+                }
             } else {
                 await txPrisma.transaction.update({
                     where: { id },
@@ -196,6 +207,16 @@ export async function updateTransaction(id: string, prevState: ActionState, form
                         spentByUserId
                     }
                 })
+
+                try {
+                    const embedding = await generateEmbedding(description)
+                    const vector = `[${embedding.join(",")}]`
+                    await txPrisma.$executeRawUnsafe(
+                        `UPDATE "Transaction" SET "descriptionEmbedding" = '${vector}'::vector WHERE id = '${id}'`
+                    )
+                } catch (e) {
+                    console.error("Failed to update embedding", e)
+                }
             }
         })
 

@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "ensure-structure": "node scripts/ensure-structure.js",
+    "genesis": "node scripts/genesis.js",
+    "codex": "node scripts/generate-codex.js"
   },
   "dependencies": {
     "@prisma/client": "5.10.0",
@@ -32,6 +35,7 @@
     "lucide-react": "^0.563.0",
     "next": "16.1.4",
     "next-auth": "^4.24.13",
+    "openai": "^6.18.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "recharts": "^3.7.0",

@@ -66,6 +66,7 @@ export function AddTransactionDialog({
     }
 
     const [selectedCategory, setSelectedCategory] = useState<string>(initialData?.categoryId || "")
+    const [type, setType] = useState<"INCOME" | "EXPENSE" | "TRANSFER">(initialData?.type || "EXPENSE")
 
     const showSpenderSelect = members.length > 1
 
@@ -80,7 +81,7 @@ export function AddTransactionDialog({
                 <DialogHeader>
                     <DialogTitle>Add Transaction</DialogTitle>
                     <DialogDescription>
-                        Log income or expense.
+                        Log income, expense, or transfer.
                     </DialogDescription>
                 </DialogHeader>
                 <form action={action} className="grid gap-4 py-4">
@@ -88,7 +89,13 @@ export function AddTransactionDialog({
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label>Type</Label>
-                            <select name="type" className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm" required defaultValue={initialData?.type || "EXPENSE"}>
+                            <select
+                                name="type"
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                                required
+                                value={type}
+                                onChange={(e) => setType(e.target.value as any)}
+                            >
                                 <option value="EXPENSE">Expense</option>
                                 <option value="INCOME">Income</option>
                                 <option value="TRANSFER">Transfer</option>
@@ -102,7 +109,7 @@ export function AddTransactionDialog({
 
                     <div className="space-y-2">
                         <Label>Date</Label>
-                        <Input name="date" type="datetime-local" required />
+                        <Input name="date" type="datetime-local" required defaultValue={initialData?.date ? new Date(initialData.date).toISOString().slice(0, 16) : ""} />
                     </div>
 
                     {showSpenderSelect ? (
@@ -139,17 +146,44 @@ export function AddTransactionDialog({
                         />
                     </div>
 
-                    <div className="space-y-2">
-                        <Label>Account</Label>
-                        <select name="accountId" className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm" required defaultValue={initialData?.accountId || ""}>
-                            <option value="">Select Account</option>
-                            {accounts.map(acc => (
-                                <option key={acc.id} value={acc.id}>
-                                    {acc.name} ({acc.currency}) {acc.ownerId ? "- Me" : "- Joint"}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+                    {type === "TRANSFER" ? (
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>From Account</Label>
+                                <select name="fromAccountId" className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm" required>
+                                    <option value="">Select Source</option>
+                                    {accounts.map(acc => (
+                                        <option key={acc.id} value={acc.id}>
+                                            {acc.name} ({acc.currency})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>To Account</Label>
+                                <select name="toAccountId" className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm" required>
+                                    <option value="">Select Dest</option>
+                                    {accounts.map(acc => (
+                                        <option key={acc.id} value={acc.id}>
+                                            {acc.name} ({acc.currency})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            <Label>Account</Label>
+                            <select name="accountId" className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm" required defaultValue={initialData?.accountId || ""}>
+                                <option value="">Select Account</option>
+                                {accounts.map(acc => (
+                                    <option key={acc.id} value={acc.id}>
+                                        {acc.name} ({acc.currency}) {acc.ownerId ? "- Me" : "- Joint"}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
 
                     {state?.error && <p className="text-red-500 text-sm">{state.error}</p>}
 
