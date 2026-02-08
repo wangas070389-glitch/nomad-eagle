@@ -149,3 +149,13 @@
     color: var(--foreground);
   }
 }
+
+@layer base {
+
+  /* Prevent iOS zoom on focus */
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
