@@ -120,13 +120,13 @@ export async function createTransaction(prevState: ActionState, formData: FormDa
             }
 
             // Personal ownership check (Debit Authority Only)
-            // Rule: You must own the SOURCE account (or it must be Joint/System).
-            // You do NOT need to own the DESTINATION account (Open Deposit).
-            if (fromAccount.ownerId && fromAccount.ownerId !== session.user.id) {
-                return { error: "Unauthorized: You do not own the source account" }
-            }
+            // Rule Update (ADR 016 Addendum): "Trusted Household" Model.
+            // We allow any household member to log a transfer FROM any account in the household.
+            // This enables "Admin" users (e.g. wife) to log transfers for their partners.
+            // effectively removing the blocking check:
+            // if (fromAccount.ownerId && fromAccount.ownerId !== session.user.id) ...
 
-            await prisma.$transaction(async (tx) => {
+            const transactionResult = await prisma.$transaction(async (tx) => {
                 // 1. Withdrawal from Source
                 const tx1 = await tx.transaction.create({
                     data: {
@@ -142,16 +142,7 @@ export async function createTransaction(prevState: ActionState, formData: FormDa
                     }
                 })
 
-                // Generate Embedding (Async - ideally queued, but inline for MVP)
-                try {
-                    const embedding = await generateEmbedding(`Transfer to ${toAccount.name}: ${description}`)
-                    const vector = `[${embedding.join(",")}]`
-                    await tx.$executeRawUnsafe(
-                        `UPDATE "Transaction" SET "descriptionEmbedding" = '${vector}'::vector WHERE id = '${tx1.id}'`
-                    )
-                } catch (e) {
-                    console.error("Failed to generate embedding for tx1", e)
-                }
+                // Embedding generation moved outside transaction to prevent 25P02 aborts
 
                 await tx.account.update({
                     where: { id: fromAccountId },
@@ -173,21 +164,32 @@ export async function createTransaction(prevState: ActionState, formData: FormDa
                     }
                 })
 
-                try {
-                    const embedding = await generateEmbedding(`Transfer from ${fromAccount.name}: ${description}`)
-                    const vector = `[${embedding.join(",")}]`
-                    await tx.$executeRawUnsafe(
-                        `UPDATE "Transaction" SET "descriptionEmbedding" = '${vector}'::vector WHERE id = '${tx2.id}'`
-                    )
-                } catch (e) {
-                    console.error("Failed to generate embedding for tx2", e)
-                }
+                // Embedding generation moved outside transaction
 
                 await tx.account.update({
                     where: { id: toAccountId },
                     data: { balance: { increment: amount } }
                 })
+                return { tx1Id: tx1.id, tx2Id: tx2.id }
             })
+
+            // Async Embedding Generation (Fire and Forget or Await)
+            // We await it here to ensure UI shows it if needed, but in separate scope so it doesn't fail the transfer.
+            const { tx1Id, tx2Id } = transactionResult
+
+            try {
+                const embedding1 = await generateEmbedding(`Transfer to ${toAccount.name}: ${description}`)
+                await prisma.$executeRawUnsafe(
+                    `UPDATE "Transaction" SET "descriptionEmbedding" = '${JSON.stringify(embedding1)}'::vector WHERE id = '${tx1Id}'`
+                )
+            } catch (e) { console.error("Embedding 1 failed", e) }
+
+            try {
+                const embedding2 = await generateEmbedding(`Transfer from ${fromAccount.name}: ${description}`)
+                await prisma.$executeRawUnsafe(
+                    `UPDATE "Transaction" SET "descriptionEmbedding" = '${JSON.stringify(embedding2)}'::vector WHERE id = '${tx2Id}'`
+                )
+            } catch (e) { console.error("Embedding 2 failed", e) }
 
         } else {
             // Standard Income/Expense
@@ -241,7 +243,7 @@ export async function createTransaction(prevState: ActionState, formData: FormDa
         return { success: true }
     } catch (e) {
         console.error(e)
-        return { error: "Transaction failed" }
+        return { error: e instanceof Error ? e.message : "Transaction failed" }
     }
 }
 

@@ -139,10 +139,10 @@ export function HouseholdSettings({
                     <p className="text-sm text-muted-foreground">Enter a code from your partner to switch to their household.</p>
                     <div className="flex gap-2 max-w-sm">
                         <Input
-                            placeholder="ENTER CODE"
+                            placeholder="XXXX-XXXX-XXXX"
                             value={joinCode}
                             onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                            maxLength={8}
+                            maxLength={14}
                         />
                         <Button onClick={handleJoin} disabled={isPending || !joinCode}>
                             {isPending ? "Joining..." : "Join"}
