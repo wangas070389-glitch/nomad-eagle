@@ -15,7 +15,9 @@ import { AccountListTabs } from "@/components/dashboard/account-list-tabs"
 import { AddInvestmentDialog } from "@/components/dashboard/investments/add-investment-dialog"
 import { PortfolioSummary } from "@/components/dashboard/investments/portfolio-summary"
 import { BudgetProgress } from "@/components/dashboard/budget/budget-progress"
-import { WealthSimulator } from "@/components/planning/wealth-simulator"
+// import { WealthSimulator } from "@/components/planning/wealth-simulator" // Replaced by CashFlowChart
+import { CashFlowChart } from "@/components/planning/cash-flow-chart"
+import { getDetailedCashFlow } from "@/server/actions/cashflow"
 import { getHouseholdMembers } from "@/server/actions/household"
 import {
     Dialog,
@@ -51,14 +53,23 @@ export default async function DashboardPage() {
         categories,
         transactions,
         portfolio,
-        householdMembers
+        householdMembers,
+        cashFlow
     ] = await Promise.all([
         getAccounts(),
         getCategories(),
         getTransactions(1, 5),
         getPortfolioSummary(),
-        getHouseholdMembers()
+        getHouseholdMembers(),
+        getDetailedCashFlow()
     ])
+
+    // Handle potential error from getDetailedCashFlow
+    if ("error" in cashFlow) {
+        // Fallback or handle error - for now, we'll let the chart handle null/loading or we pass null
+        // But wait, the chart expects DetailedCashFlow or null. DetailedCashFlow | { error: string } is the return type.
+        // Let's cast or check.
+    }
 
     const accountOptions = accounts.map(a => ({
         id: a.id,
@@ -121,7 +132,7 @@ export default async function DashboardPage() {
 
             <SemanticSearch />
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Household Cash</CardTitle>
@@ -149,6 +160,20 @@ export default async function DashboardPage() {
                         </p>
                     </CardContent>
                 </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Net Worth</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">
+                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cashBalance + (portfolio.totalValueMXN / (portfolio.exchangeRate || 1)))}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            Total Assets (Est. USD)
+                        </p>
+                    </CardContent>
+                </Card>
             </div>
 
             <div className="flex flex-col xl:grid xl:grid-cols-12 gap-6">
@@ -162,7 +187,10 @@ export default async function DashboardPage() {
                         />
                     </div>
 
-                    <WealthSimulator />
+                    <CashFlowChart
+                        initialData={"error" in cashFlow ? null : cashFlow}
+                        className="h-[200px]"
+                    />
 
                     <div>
                         <TransactionList

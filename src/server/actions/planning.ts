@@ -169,24 +169,24 @@ export async function getPlanningData() {
     const session = await getServerSession(authOptions)
     if (!session?.user?.householdId) return { flows: [], limits: [], categories: [] }
 
-    const flows = await prisma.recurringFlow.findMany({
-        where: { householdId: session.user.householdId }
-    })
-
-    const limits = await prisma.budgetLimit.findMany({
-        where: { householdId: session.user.householdId }
-    })
-
-    const categories = await prisma.category.findMany({
-        where: {
-            OR: [
-                { householdId: null }, // System
-                { householdId: session.user.householdId } // Custom
-            ],
-            isArchived: false
-        },
-        orderBy: { name: 'asc' }
-    })
+    const [flows, limits, categories] = await Promise.all([
+        prisma.recurringFlow.findMany({
+            where: { householdId: session.user.householdId }
+        }),
+        prisma.budgetLimit.findMany({
+            where: { householdId: session.user.householdId }
+        }),
+        prisma.category.findMany({
+            where: {
+                OR: [
+                    { householdId: null }, // System
+                    { householdId: session.user.householdId } // Custom
+                ],
+                isArchived: false
+            },
+            orderBy: { name: 'asc' }
+        })
+    ])
 
     return {
         flows: flows.map(f => ({ ...f, amount: Number(f.amount) })),

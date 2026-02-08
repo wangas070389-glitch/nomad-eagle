@@ -51,18 +51,21 @@ export async function getTrips() {
         orderBy: { startDate: 'asc' }
     })
 
-    // Calculate spent per trip
-    // This is expensive if lots of transactions, but okay for MVP isolation
-    // Ideally we aggregate this
-    const tripsWithSpent = await Promise.all(trips.map(async (t) => {
-        const aggregations = await prisma.transaction.aggregate({
-            where: { tripId: t.id },
-            _sum: { amount: true }
-        })
-        return {
-            ...t,
-            spent: Number(aggregations._sum.amount || 0)
-        }
+    // Calculate spent per trip using GroupBy (Batch Query) instead of N+1
+    const tripIds = trips.map(t => t.id)
+
+    const spendingAgg = await prisma.transaction.groupBy({
+        by: ['tripId'],
+        where: { tripId: { in: tripIds } },
+        _sum: { amount: true }
+    })
+
+    const spentMap = new Map(spendingAgg.map(agg => [agg.tripId, Number(agg._sum.amount || 0)]))
+
+    // Merge
+    const tripsWithSpent = trips.map(t => ({
+        ...t,
+        spent: spentMap.get(t.id) || 0
     }))
 
     return tripsWithSpent
@@ -87,21 +90,49 @@ export async function getTripDetails(tripId: string) {
         return null
     }
 
+    // 1. Fetch Trip Meta & Members
     const trip = await prisma.trip.findUnique({
         where: { id: tripId },
         include: {
-            members: { include: { user: true } },
-            transactions: {
-                include: {
-                    spentBy: true,
-                    category: true
-                },
-                orderBy: { date: 'desc' }
-            }
+            members: { include: { user: true } }
         }
     })
 
-    return trip
+    if (!trip) return null
+
+    // 2. Aggregate Spending (Gravity Well Fix)
+    // Instead of fetching 10k rows, we ask DB for sums.
+    const spendingAgg = await prisma.transaction.groupBy({
+        by: ['spentByUserId'],
+        where: { tripId },
+        _sum: { amount: true }
+    })
+
+    // 3. Fetch Recent Transactions (Limit 50)
+    const transactions = await prisma.transaction.findMany({
+        where: { tripId },
+        include: {
+            spentBy: true,
+            category: true
+        },
+        orderBy: { date: 'desc' },
+        take: 50
+    })
+
+    // Map aggregation to easier format
+    const paidBy: Record<string, number> = {}
+    spendingAgg.forEach(agg => {
+        if (agg.spentByUserId) paidBy[agg.spentByUserId] = Number(agg._sum.amount || 0)
+    })
+
+    return {
+        ...trip,
+        transactions, // Only recent ones for display!
+        stats: {
+            paidBy,
+            totalSpent: Object.values(paidBy).reduce((a, b) => a + b, 0)
+        }
+    }
 }
 
 export async function addTripTransaction(formData: FormData) {

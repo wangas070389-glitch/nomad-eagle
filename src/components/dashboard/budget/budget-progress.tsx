@@ -77,7 +77,11 @@ export function BudgetProgress() {
                             <span className="text-muted-foreground">
                                 {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'MXN' }).format(item.spent)}
                                 <span className="text-xs mx-1">/</span>
-                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'MXN' }).format(item.limit)}
+                                {item.limit === 0 ? (
+                                    <span className="text-muted-foreground/50">--</span>
+                                ) : (
+                                    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'MXN' }).format(item.limit)
+                                )}
                             </span>
                         </div>
                         <Progress

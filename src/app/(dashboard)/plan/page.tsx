@@ -2,12 +2,12 @@ import { authOptions } from "@/lib/auth"
 import { getServerSession } from "next-auth"
 import { redirect } from "next/navigation"
 import { getPlanningData, deleteRecurringFlow } from "@/server/actions/planning"
-import { WealthSimulator } from "@/components/planning/wealth-simulator"
 import { AddFlowDialog } from "@/components/planning/add-flow-dialog"
 import { EditFlowDialog } from "@/components/planning/edit-flow-dialog"
 import { SetLimitDialog } from "@/components/planning/set-limit-dialog"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CashFlowTable } from "@/components/planning/cash-flow-table"
+import { CashFlowChart } from "@/components/planning/cash-flow-chart"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Trash2, TrendingUp, TrendingDown, Wallet } from "lucide-react"
@@ -59,10 +59,18 @@ export default async function PlanningPage() {
                             </TabsList>
                         </div>
                         <TabsContent value="visual" className="mt-0">
-                            <WealthSimulator />
+                            <Card>
+                                <CardContent className="p-0">
+                                    <CashFlowChart />
+                                </CardContent>
+                            </Card>
                         </TabsContent>
                         <TabsContent value="spreadsheet" className="mt-0">
-                            <CashFlowTable />
+                            <Card>
+                                <CardContent className="p-0">
+                                    <CashFlowTable />
+                                </CardContent>
+                            </Card>
                         </TabsContent>
                     </Tabs>
                 </div>

@@ -49,7 +49,15 @@ export async function getBudgetProgress(referenceDate?: Date) {
         if (a.categoryId) spentMap.set(a.categoryId, Number(a._sum.amount || 0))
     })
 
-    // 3. Combine
+    // 3. Get All Categories (for names of unbudgeted items)
+    const allCategories = await prisma.category.findMany({
+        where: { householdId }
+    })
+    const categoryNameMap = new Map<string, string>()
+    allCategories.forEach(c => categoryNameMap.set(c.id, c.name))
+
+    // 4. Combine & Merge
+    // Start with explicit limits
     const progress = limits.map(limit => {
         const spent = spentMap.get(limit.categoryId) || 0
         const max = Number(limit.amount)
@@ -59,6 +67,10 @@ export async function getBudgetProgress(referenceDate?: Date) {
         if (percent > 100) status = 'danger'
         else if (percent > 85) status = 'warning'
 
+        // Remove processed item from map to identify unbudgeted later?
+        // Actually simpler: Set of processed IDs.
+        spentMap.delete(limit.categoryId)
+
         return {
             categoryId: limit.categoryId,
             categoryName: limit.category.name,
@@ -66,9 +78,30 @@ export async function getBudgetProgress(referenceDate?: Date) {
             limit: max,
             percent,
             status,
-            period: limit.period // assume MONTHLY for MVP display
+            period: limit.period
         }
     })
 
-    return progress.sort((a, b) => b.percent - a.percent)
+    // Add remaining (Unbudgeted) items from spentMap
+    for (const [categoryId, spent] of spentMap.entries()) {
+        if (spent > 0) { // Only show if there is spending
+            const name = categoryNameMap.get(categoryId) || "Unknown Category"
+            progress.push({
+                categoryId: categoryId,
+                categoryName: name,
+                spent: spent,
+                limit: 0, // No limit set
+                percent: 100, // Visual full bar, or handle as special case in UI
+                status: 'danger', // Default to danger/over-budget color
+                period: 'MONTHLY'
+            })
+        }
+    }
+
+    // Sort: Danger first (over budget), then by % usage
+    return progress.sort((a, b) => {
+        if (a.status === 'danger' && b.status !== 'danger') return -1
+        if (b.status === 'danger' && a.status !== 'danger') return 1
+        return b.percent - a.percent
+    })
 }

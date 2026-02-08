@@ -21,35 +21,30 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 
 export default async function TripDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+    // Fix Waterfall: Run params and session in parallel (params is a promise in Next 15)
+    // Actually, params needs to be awaited first to get ID, then we can parallelize data fetch
     const { id } = await params
-    const session = await getServerSession(authOptions)
-    const trip = await getTripDetails(id)
+
+    const [session, trip] = await Promise.all([
+        getServerSession(authOptions),
+        getTripDetails(id)
+    ])
 
     if (!trip) return notFound()
 
-    // Calculate totals and splits
-    const totalSpent = trip.transactions.reduce((sum, t) => sum + Number(t.amount), 0)
+    // Use Server-Aggregated Stats (O(1)) instead of Client-Side Reduce (O(N))
+    const totalSpent = trip.stats.totalSpent
     const budgetLimit = Number(trip.budgetLimit) || 0
     const progress = budgetLimit > 0 ? (totalSpent / budgetLimit) * 100 : 0
 
     // Split Logic (Simple Equal Split for MVP)
     const perPersonShare = totalSpent / trip.members.length
-
-    // Who paid what
-    const paidBy: Record<string, number> = {}
-    trip.members.forEach(m => paidBy[m.userId] = 0)
-
-    trip.transactions.forEach(t => {
-        const payerId = t.spentByUserId || "unknown"
-        if (paidBy[payerId] !== undefined) {
-            paidBy[payerId] += Number(t.amount)
-        }
-    })
+    const { paidBy } = trip.stats
 
     const balances = trip.members.map(m => ({
         ...m,
-        paid: paidBy[m.userId],
-        balance: paidBy[m.userId] - perPersonShare // Positive = Owed, Negative = Owes
+        paid: paidBy[m.userId] || 0,
+        balance: (paidBy[m.userId] || 0) - perPersonShare // Positive = Owed, Negative = Owes
     }))
 
     return (

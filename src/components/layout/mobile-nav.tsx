@@ -30,6 +30,9 @@ export function MobileNav() {
                     <Link href="/trips" className="cursor-pointer">Trips</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
+                    <Link href="/wealth" className="cursor-pointer">Wealth</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
                     <Link href="/settings" className="cursor-pointer">Settings</Link>
                 </DropdownMenuItem>
             </DropdownMenuContent>

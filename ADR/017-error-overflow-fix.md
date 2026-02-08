@@ -4,7 +4,7 @@ Date: 2026-02-07
 
 ## Status
 
-Proposed
+Accepted
 
 ## Context
 
@@ -38,3 +38,15 @@ We will verify if `spentByUserId` or `householdId` usage in `prisma.create` is c
 
 -   **Pros**: Immediate visibility into the root cause of the transfer failure. Better UX on smaller screens.
 -   **Cons**: Minor security risk exposing DB error messages (acceptable for current stage).
+
+---
+
+## Addendum: Decoupled AI Embedding Pattern (2026-02-07)
+The `25P02` (current transaction is aborted) error persisted for strict Income/Expense transactions. We have established a **System-Wide Pattern** for AI Embeddings:
+
+> **Decision**: AI Embedding generation MUST occur **outside** the primary database transaction block.
+
+### Implementation Pattern
+1.  **DB Transaction**: Validate logic -> Create Record -> Update Balances -> Commit.
+2.  **Async/Post-Commit**: Generate Embedding -> Update Record with Vector.
+3.  **Failure Handling**: If embedding fails, the transaction remains valid. The record will simply lack vector search capability until a background job (future) retries it. This prioritizes Data Integrity over AI features.

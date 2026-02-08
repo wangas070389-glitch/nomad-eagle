@@ -207,7 +207,7 @@ export async function createTransaction(prevState: ActionState, formData: FormDa
 
             const balanceChange = type === "INCOME" ? amount : -amount
 
-            await prisma.$transaction(async (tx) => {
+            const savedTx = await prisma.$transaction(async (tx) => {
                 const newTx = await tx.transaction.create({
                     data: {
                         amount,
@@ -222,21 +222,24 @@ export async function createTransaction(prevState: ActionState, formData: FormDa
                     }
                 })
 
-                try {
-                    const embedding = await generateEmbedding(description)
-                    const vector = `[${embedding.join(",")}]`
-                    await tx.$executeRawUnsafe(
-                        `UPDATE "Transaction" SET "descriptionEmbedding" = '${vector}'::vector WHERE id = '${newTx.id}'`
-                    )
-                } catch (e) {
-                    console.error("Failed to generate embedding for newTx", e)
-                }
-
                 await tx.account.update({
                     where: { id: accountId },
                     data: { balance: { increment: balanceChange } }
                 })
+
+                return newTx
             })
+
+            // Async Embedding Generation (Outside Transaction)
+            try {
+                const embedding = await generateEmbedding(description)
+                const vector = `[${embedding.join(",")}]`
+                await prisma.$executeRawUnsafe(
+                    `UPDATE "Transaction" SET "descriptionEmbedding" = '${vector}'::vector WHERE id = '${savedTx.id}'`
+                )
+            } catch (e) {
+                console.error("Failed to generate embedding for newTx", e)
+            }
         }
 
         revalidatePath("/dashboard")
