@@ -54,7 +54,7 @@ export function SmartDatePicker({ date, setDate }: SmartDatePickerProps) {
                     <Button
                         variant={"outline"}
                         className={cn(
-                            "w-full justify-start text-left font-normal",
+                            "flex-1 justify-start text-left font-normal", // Changed w-full to flex-1
                             !date && "text-muted-foreground"
                         )}
                     >
