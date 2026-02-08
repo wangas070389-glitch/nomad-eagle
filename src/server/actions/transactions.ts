@@ -118,10 +118,12 @@ export async function createTransaction(prevState: ActionState, formData: FormDa
                 toAccount.householdId !== session.user.householdId) {
                 return { error: "Unauthorized: Account belongs to another household" }
             }
-            // Personal ownership check (secondary)
-            if ((fromAccount.ownerId && fromAccount.ownerId !== session.user.id) ||
-                (toAccount.ownerId && toAccount.ownerId !== session.user.id)) {
-                return { error: "Unauthorized access to one of the accounts" }
+
+            // Personal ownership check (Debit Authority Only)
+            // Rule: You must own the SOURCE account (or it must be Joint/System).
+            // You do NOT need to own the DESTINATION account (Open Deposit).
+            if (fromAccount.ownerId && fromAccount.ownerId !== session.user.id) {
+                return { error: "Unauthorized: You do not own the source account" }
             }
 
             await prisma.$transaction(async (tx) => {
