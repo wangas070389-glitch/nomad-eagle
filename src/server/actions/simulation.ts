@@ -102,7 +102,7 @@ const performSimulation = async (householdId: string, months: number, annualRetu
                 case "MONTHLY": isDue = true; break
                 case "QUARTERLY": isDue = diffMonths % 3 === 0; break
                 case "SEMIANNUAL": isDue = diffMonths % 6 === 0; break
-                case "ANNUAL": case "YEARLY": isDue = diffMonths % 12 === 0; break
+                case "ANNUAL": isDue = diffMonths % 12 === 0; break
                 case "ONE_TIME": isDue = diffMonths === 0; break
                 case "WEEKLY":
                     // Weekly flows contribute ~4.33x per month
