@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nomad Eagle: Sovereign Financial Intelligence</title>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* ===========================================
+           CSS CUSTOM PROPERTIES (THEME: BOLD SIGNAL)
+           =========================================== */
+        :root {
+            --bg-primary: #1a1a1a;
+            --bg-gradient: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
+            --card-bg: #FF5722;
+            --text-primary: #ffffff;
+            --text-on-card: #1a1a1a;
+            --accent: #FF5722;
+            --accent-glow: rgba(255, 87, 34, 0.3);
+
+            --font-display: 'Archivo Black', sans-serif;
+            --font-body: 'Space Grotesk', sans-serif;
+
+            /* Viewport Fitting Variables */
+            --title-size: clamp(2rem, 8vw, 6rem);
+            --h2-size: clamp(1.5rem, 5vw, 3.5rem);
+            --h3-size: clamp(1.2rem, 3vw, 2rem);
+            --body-size: clamp(0.875rem, 1.8vw, 1.25rem);
+            --small-size: clamp(0.7rem, 1.2vw, 1rem);
+
+            --slide-padding: clamp(2rem, 8vw, 6rem);
+            --content-gap: clamp(1rem, 3vw, 3rem);
+            --element-gap: clamp(0.5rem, 1.5vw, 1.5rem);
+
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+            --duration-normal: 0.8s;
+        }
+
+        /* ===========================================
+           BASE STYLES (from viewport-base.css)
+           =========================================== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+        }
+
+        html {
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth;
+        }
+
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background: var(--bg-gradient);
+        }
+
+        .slide-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            max-height: 100%;
+            padding: var(--slide-padding);
+        }
+
+        /* ===========================================
+           ANIMATIONS
+           =========================================== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity var(--duration-normal) var(--ease-out-expo),
+                        transform var(--duration-normal) var(--ease-out-expo);
+        }
+
+        .slide.visible .reveal {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .reveal:nth-child(1) { transition-delay: 0.1s; }
+        .reveal:nth-child(2) { transition-delay: 0.2s; }
+        .reveal:nth-child(3) { transition-delay: 0.3s; }
+        .reveal:nth-child(4) { transition-delay: 0.4s; }
+        .reveal:nth-child(5) { transition-delay: 0.5s; }
+
+        /* ===========================================
+           BOLD SIGNAL SPECIFIC STYLES
+           =========================================== */
+        .number {
+            position: absolute;
+            top: clamp(1.5rem, 4vw, 3rem);
+            left: clamp(1.5rem, 4vw, 3rem);
+            font-family: var(--font-display);
+            font-size: clamp(1rem, 2vw, 1.5rem);
+            color: var(--accent);
+            opacity: 0.6;
+        }
+
+        .nav-dots {
+            position: fixed;
+            right: clamp(1.5rem, 4vw, 3rem);
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            z-index: 100;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--text-primary);
+            opacity: 0.2;
+            cursor: pointer;
+            transition: opacity 0.3s ease, background 0.3s ease;
+        }
+
+        .dot.active {
+            opacity: 1;
+            background: var(--accent);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 4px;
+            background: var(--accent);
+            z-index: 1000;
+            transition: width 0.3s ease;
+        }
+
+        .bold-card {
+            background: var(--card-bg);
+            color: var(--text-on-card);
+            padding: clamp(2rem, 5vw, 4rem);
+            display: inline-block;
+            margin-top: var(--element-gap);
+        }
+
+        .title-display {
+            font-family: var(--font-display);
+            font-size: var(--title-size);
+            line-height: 0.85;
+            text-transform: uppercase;
+            letter-spacing: -0.02em;
+        }
+
+        .h2-display {
+            font-family: var(--font-display);
+            font-size: var(--h2-size);
+            line-height: 1;
+            text-transform: uppercase;
+            margin-bottom: var(--element-gap);
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--content-gap);
+            margin-top: var(--element-gap);
+        }
+
+        .feature-item {
+            border-left: 4px solid var(--accent);
+            padding-left: 1.5rem;
+        }
+
+        .feature-item h3 {
+            font-family: var(--font-display);
+            font-size: var(--h3-size);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+        }
+
+        .protocol-tag {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            margin-right: 0.5rem;
+            color: var(--accent);
+        }
+
+        .bullet-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .bullet-list li::before {
+            content: "→";
+            color: var(--accent);
+            margin-right: 1rem;
+            font-weight: bold;
+        }
+
+        /* Inline Editing Styles */
+        .edit-hotzone {
+            position: fixed; top: 0; left: 0;
+            width: 80px; height: 80px;
+            z-index: 10000;
+            cursor: pointer;
+        }
+        .edit-toggle {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 10001;
+            background: var(--accent);
+            border: none;
+            color: white;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .edit-toggle.show,
+        .edit-toggle.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        [contenteditable="true"] {
+            outline: 2px dashed var(--accent);
+            outline-offset: 4px;
+            cursor: text;
+        }
+
+        @media (max-width: 768px) {
+            .feature-grid { grid-template-columns: 1fr; }
+            .title-display { font-size: clamp(2.5rem, 12vw, 4rem); }
+        }
+    </style>
+</head>
+<body>
+    <div class="progress-bar" id="progressBar"></div>
+    <nav class="nav-dots" id="navDots"></nav>
+
+    <!-- Inline Editing Interface -->
+    <div class="edit-hotzone" id="editHotzone"></div>
+    <button class="edit-toggle" id="editToggle" title="Edit mode (E)">✏️</button>
+
+    <!-- SLIDE 1: TITLE -->
+    <section class="slide">
+        <div class="number">01</div>
+        <div class="slide-content">
+            <h1 class="title-display reveal">NOMAD<br>EAGLE</h1>
+            <div class="bold-card reveal">
+                <p class="body-size" style="font-weight: 700;">Sovereign Financial Intelligence</p>
+            </div>
+            <p class="reveal" style="margin-top: 2rem; opacity: 0.6; max-width: 500px;">
+                Operationalizing household autonomy through protocol-driven design and high-integrity ledgers.
+            </p>
+        </div>
+    </section>
+
+    <!-- SLIDE 2: THE PROBLEM -->
+    <section class="slide">
+        <div class="number">02</div>
+        <div class="slide-content">
+            <h2 class="h2-display reveal">THE CHALLENGE</h2>
+            <div class="feature-grid">
+                <div class="feature-item reveal">
+                    <h3>FRAGMENTATION</h3>
+                    <p class="body-size">Financial data is scattered across platforms, losing the "Household" context.</p>
+                </div>
+                <div class="feature-item reveal">
+                    <h3>SILENT FAILURES</h3>
+                    <p class="body-size">Most systems rely on cached balances, obscuring the absolute truth of the ledger.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 3: FINANCIAL DNA -->
+    <section class="slide">
+        <div class="number">03</div>
+        <div class="slide-content">
+            <h2 class="h2-display reveal">FINANCIAL DNA</h2>
+            <ul class="bullet-list reveal">
+                <li class="body-size"><strong>Ledger-First Model:</strong> All balances are derived from append-only entries.</li>
+                <li class="body-size"><strong>Sovereign Households:</strong> Data is isolated and encrypted at the household level.</li>
+                <li class="body-size"><strong>Precision Core:</strong> 100% accuracy using high-precision Decimal.js math.</li>
+                <li class="body-size"><strong>Semantic Search:</strong> Intent-based transaction lookup via pgvector.</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- SLIDE 4: THE ARCHITECTURE -->
+    <section class="slide">
+        <div class="number">04</div>
+        <div class="slide-content">
+            <h2 class="h2-display reveal">SYSTEM TOPOLOGY</h2>
+            <div class="feature-grid">
+                <div class="feature-item reveal">
+                    <h3>THE BEDROCK</h3>
+                    <p class="small-size">Prisma ORM + PostgreSQL. UUIDv7 for absolute sortability and scalability.</p>
+                </div>
+                <div class="feature-item reveal">
+                    <h3>THE CORE</h3>
+                    <p class="small-size">Hermetic business logic. Pure functions. Zero external dependencies.</p>
+                </div>
+                <div class="feature-item reveal">
+                    <h3>THE EDGE</h3>
+                    <p class="small-size">Next.js App Router. Server Actions for secure, type-safe mutations.</p>
+                </div>
+                <div class="feature-item reveal">
+                    <h3>THE AIRLOCK</h3>
+                    <p class="small-size">Zod sanitization. "Parse, Don't Validate" structural integrity.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 5: GOVERNING PROTOCOLS -->
+    <section class="slide">
+        <div class="number">05</div>
+        <div class="slide-content">
+            <h2 class="h2-display reveal">GOVERNING LAWS</h2>
+            <div class="reveal" style="margin-bottom: 2rem;">
+                <span class="protocol-tag">Protocol 0</span> <strong>Machine Constitution:</strong> Agents code, humans oversee.
+            </div>
+            <div class="reveal" style="margin-bottom: 2rem;">
+                <span class="protocol-tag">Protocol 4</span> <strong>Gravity Well:</strong> Strict inward dependency flow.
+            </div>
+            <div class="reveal" style="margin-bottom: 2rem;">
+                <span class="protocol-tag">Protocol 13</span> <strong>Shield:</strong> Mandatory isolation & zero-trust.
+            </div>
+            <div class="reveal">
+                <span class="protocol-tag">Protocol 16</span> <strong>GitOps:</strong> Git is the single source of truth.
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 6: GRANULAR VISUALIZATION -->
+    <section class="slide">
+        <div class="number">06</div>
+        <div class="slide-content">
+            <h2 class="h2-display reveal">GRANULAR VISION</h2>
+            <p class="body-size reveal" style="max-width: 700px;">
+                Current Mission: Deconstructing aggregated models into individual line-item histories.
+            </p>
+            <div class="bold-card reveal" style="margin-top: 2rem;">
+                <p class="small-size"><strong>Identity Preservation:</strong> Mapping "Salary" and "Rent" as distinct streams.</p>
+                <p class="small-size" style="margin-top: 1rem;"><strong>Accumulative Trends:</strong> Area charts showing total liquidity runway.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 7: VELVET ROPE ONBOARDING -->
+    <section class="slide">
+        <div class="number">07</div>
+        <div class="slide-content">
+            <h2 class="h2-display reveal">VELVET ROPE</h2>
+            <ul class="bullet-list reveal">
+                <li class="body-size"><strong>Capacity Gating:</strong> 8 slots for pending users to maintain quality.</li>
+                <li class="body-size"><strong>Auto-Initialization:</strong> Instant household creation for new users.</li>
+                <li class="body-size"><strong>Joint Access:</strong> Secure invitation tokens for shared sovereignty.</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- SLIDE 8: THE 2026 ARCHITECT -->
+    <section class="slide">
+        <div class="number">08</div>
+        <div class="slide-content">
+            <h2 class="h2-display reveal">SYSTEM 2 THINKING</h2>
+            <p class="body-size reveal">The Architect-Engineer persona:</p>
+            <div class="feature-grid" style="margin-top: 1rem;">
+                <div class="feature-item reveal">
+                    <h3>CYNEFIN</h3>
+                    <p class="small-size">Domain-aware strategy.</p>
+                </div>
+                <div class="feature-item reveal">
+                    <h3>WARDLEY</h3>
+                    <p class="small-size">Genesis vs. Commodity.</p>
+                </div>
+                <div class="feature-item reveal">
+                    <h3>ATAM</h3>
+                    <p class="small-size">Objective trade-off analysis.</p>
+                </div>
+                <div class="feature-item reveal">
+                    <h3>DORA</h3>
+                    <p class="small-size">Measuring speed & stability.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 9: CLOSING -->
+    <section class="slide">
+        <div class="number">09</div>
+        <div class="slide-content">
+            <h1 class="title-display reveal">Sovereignty<br>Established.</h1>
+            <div class="bold-card reveal">
+                <p class="body-size" style="font-weight: 700;">Nomad Eagle 2026</p>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        /* ===========================================
+           SLIDE PRESENTATION CONTROLLER
+           =========================================== */
+        class SlidePresentation {
+            constructor() {
+                this.slides = document.querySelectorAll('.slide');
+                this.navDotsContainer = document.getElementById('navDots');
+                this.progressBar = document.getElementById('progressBar');
+                this.currentSlideIndex = 0;
+                
+                this.init();
+            }
+
+            init() {
+                this.setupNavDots();
+                this.setupIntersectionObserver();
+                this.setupKeyboardNav();
+                this.setupScrollNav();
+                this.updateProgress();
+            }
+
+            setupNavDots() {
+                this.slides.forEach((_, i) => {
+                    const dot = document.createElement('div');
+                    dot.classList.add('dot');
+                    if (i === 0) dot.classList.add('active');
+                    dot.addEventListener('click', () => this.goToSlide(i));
+                    this.navDotsContainer.appendChild(dot);
+                });
+            }
+
+            setupIntersectionObserver() {
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('visible');
+                            const index = Array.from(this.slides).indexOf(entry.target);
+                            this.updateActiveDot(index);
+                            this.currentSlideIndex = index;
+                            this.updateProgress();
+                        }
+                    });
+                }, { threshold: 0.5 });
+
+                this.slides.forEach(slide => observer.observe(slide));
+            }
+
+            updateActiveDot(index) {
+                const dots = this.navDotsContainer.querySelectorAll('.dot');
+                dots.forEach((dot, i) => {
+                    dot.classList.toggle('active', i === index);
+                });
+            }
+
+            updateProgress() {
+                const percent = ((this.currentSlideIndex + 1) / this.slides.length) * 100;
+                this.progressBar.style.width = `${percent}%`;
+            }
+
+            goToSlide(index) {
+                this.slides[index].scrollIntoView({ behavior: 'smooth' });
+            }
+
+            setupKeyboardNav() {
+                document.addEventListener('keydown', (e) => {
+                    if (e.target.getAttribute('contenteditable')) return;
+
+                    if (e.key === 'ArrowDown' || e.key === ' ' || e.key === 'PageDown') {
+                        e.preventDefault();
+                        this.nextSlide();
+                    } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+                        e.preventDefault();
+                        this.prevSlide();
+                    }
+                });
+            }
+
+            setupScrollNav() {
+                // Smooth scroll handling for mouse wheel
+                let isThrottled = false;
+                window.addEventListener('wheel', (e) => {
+                    if (isThrottled) return;
+                    isThrottled = true;
+                    setTimeout(() => isThrottled = false, 1000);
+                }, { passive: true });
+            }
+
+            nextSlide() {
+                if (this.currentSlideIndex < this.slides.length - 1) {
+                    this.goToSlide(this.currentSlideIndex + 1);
+                }
+            }
+
+            prevSlide() {
+                if (this.currentSlideIndex > 0) {
+                    this.goToSlide(this.currentSlideIndex - 1);
+                }
+            }
+        }
+
+        /* ===========================================
+           INLINE EDITOR (OPT-IN)
+           =========================================== */
+        class SlideEditor {
+            constructor() {
+                this.isActive = false;
+                this.hotzone = document.getElementById('editHotzone');
+                this.toggleBtn = document.getElementById('editToggle');
+                this.hideTimeout = null;
+
+                this.init();
+            }
+
+            init() {
+                this.setupHover();
+                this.setupToggle();
+                this.setupKeyboard();
+                this.loadState();
+            }
+
+            setupHover() {
+                const show = () => {
+                    clearTimeout(this.hideTimeout);
+                    this.toggleBtn.classList.add('show');
+                };
+                const hide = () => {
+                    this.hideTimeout = setTimeout(() => {
+                        if (!this.isActive) this.toggleBtn.classList.remove('show');
+                    }, 400);
+                };
+
+                this.hotzone.addEventListener('mouseenter', show);
+                this.hotzone.addEventListener('mouseleave', hide);
+                this.toggleBtn.addEventListener('mouseenter', show);
+                this.toggleBtn.addEventListener('mouseleave', hide);
+                this.hotzone.addEventListener('click', () => this.toggleEditMode());
+            }
+
+            setupToggle() {
+                this.toggleBtn.addEventListener('click', () => this.toggleEditMode());
+            }
+
+            setupKeyboard() {
+                document.addEventListener('keydown', (e) => {
+                    if ((e.key === 'e' || e.key === 'E') && !e.target.getAttribute('contenteditable')) {
+                        this.toggleEditMode();
+                    }
+                    if (e.key === 's' && e.ctrlKey) {
+                        e.preventDefault();
+                        this.saveState();
+                    }
+                });
+            }
+
+            toggleEditMode() {
+                this.isActive = !this.isActive;
+                this.toggleBtn.classList.toggle('active', this.isActive);
+                this.toggleBtn.innerText = this.isActive ? '💾' : '✏️';
+                
+                const editables = document.querySelectorAll('h1, h2, h3, p, li, span');
+                editables.forEach(el => {
+                    if (el.id === 'editToggle') return;
+                    el.contentEditable = this.isActive;
+                });
+
+                if (!this.isActive) {
+                    this.saveState();
+                    alert('Changes saved to local storage! (Ctrl+S to save anytime)');
+                }
+            }
+
+            saveState() {
+                const content = document.body.innerHTML;
+                localStorage.setItem('nomad_eagle_slides', content);
+            }
+
+            loadState() {
+                const saved = localStorage.getItem('nomad_eagle_slides');
+                if (saved) {
+                    // Logic to selectively restore content could be added here
+                    // For this demo, we stay with generated content to ensure fresh DNA
+                }
+            }
+        }
+
+        // Initialize components
+        window.addEventListener('DOMContentLoaded', () => {
+            new SlidePresentation();
+            new SlideEditor();
+        });
+    </script>
+</body>
+</html>

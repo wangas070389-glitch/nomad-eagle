@@ -127,7 +127,7 @@ export function TransactionList({
                                                     {tx.description}
                                                 </div>
                                                 <div className="text-xs text-muted-foreground flex items-center gap-1">
-                                                    {tx.category?.name || "Uncategorized"} • {tx.account?.name || "Unknown Account"}
+                                                    {(tx as any).category?.name || (tx as any).recurringFlow?.name || "Uncategorized"} • {tx.account?.name || "Unknown Account"}
                                                     {isSharedAndNotMe && (
                                                         <span className="text-purple-600 font-medium ml-1 flex items-center bg-purple-100 px-1.5 py-0.5 rounded text-[10px]">
                                                             <Avatar className="h-4 w-4 mr-1">

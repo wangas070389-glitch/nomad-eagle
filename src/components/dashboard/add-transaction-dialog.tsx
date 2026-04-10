@@ -29,6 +29,7 @@ import { SafeAccount, AccountOption } from "@/lib/types"
 export function AddTransactionDialog({
     accounts,
     categories,
+    plannerCategories = [],
     members = [],
     currentUserId,
     initialData,
@@ -36,6 +37,7 @@ export function AddTransactionDialog({
 }: {
     accounts: AccountOption[], // Accept broader SafeAccount is fine too as it extends Option
     categories: CategoryOption[],
+    plannerCategories?: Array<{ id: string, name: string, icon: string, type: string, isPlannerItem: boolean }>,
     members?: { id: string, name: string | null }[],
     currentUserId?: string,
     initialData?: {
@@ -47,6 +49,7 @@ export function AddTransactionDialog({
         categoryId: string
         accountId: string
         spentByUserId?: string
+        recurringFlowId?: string
     },
     onClose?: () => void
 }) {
@@ -74,6 +77,7 @@ export function AddTransactionDialog({
     }
 
     const [selectedCategory, setSelectedCategory] = useState<string>(initialData?.categoryId || "")
+    const [selectedPlannerFlow, setSelectedPlannerFlow] = useState<string>(initialData?.recurringFlowId || "")
     const [selectedAccount, setSelectedAccount] = useState<string>(initialData?.accountId || "")
     const [fromAccount, setFromAccount] = useState<string>("")
     const [toAccount, setToAccount] = useState<string>("")
@@ -208,10 +212,30 @@ export function AddTransactionDialog({
                             <div className="space-y-1.5">
                                 <Label className="text-xs text-muted-foreground font-medium">Category</Label>
                                 <input type="hidden" name="categoryId" value={selectedCategory} />
+                                <input type="hidden" name="recurringFlowId" value={selectedPlannerFlow} />
+                                <input type="hidden" name="budgetLimitId" value="" /> {/* Placeholder for future expansion */}
                                 <CategorySelect
-                                    categories={categories}
-                                    value={selectedCategory}
-                                    onChange={setSelectedCategory}
+                                    categories={[
+                                        ...categories,
+                                        ...(plannerCategories?.map(p => ({
+                                            id: p.id,
+                                            name: `[Flow] ${p.name}`,
+                                            icon: p.icon,
+                                            type: p.type as any,
+                                            isPlannerItem: true
+                                        })) || [])
+                                    ]}
+                                    value={selectedPlannerFlow || selectedCategory}
+                                    onChange={(val) => {
+                                        const isPlanner = plannerCategories?.find(p => p.id === val)
+                                        if (isPlanner) {
+                                            setSelectedPlannerFlow(val)
+                                            setSelectedCategory("")
+                                        } else {
+                                            setSelectedCategory(val)
+                                            setSelectedPlannerFlow("")
+                                        }
+                                    }}
                                 />
                             </div>
 

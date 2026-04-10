@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Style B: Electric Studio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0a0a;
+            --bg-white: #ffffff;
+            --accent-blue: #4361ee;
+            --text-dark: #0a0a0a;
+            --text-light: #ffffff;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Manrope', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .slide {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-top {
+            flex: 1;
+            background: var(--bg-white);
+            color: var(--text-dark);
+            padding: clamp(2rem, 8vw, 6rem);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            position: relative;
+        }
+
+        .panel-bottom {
+            height: clamp(100px, 20vh, 300px);
+            background: var(--accent-blue);
+            color: var(--text-light);
+            padding: clamp(2rem, 8vw, 6rem);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .brand-mark {
+            position: absolute;
+            top: clamp(2rem, 5vw, 4rem);
+            left: clamp(2rem, 5vw, 4rem);
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            font-size: 1.2rem;
+        }
+
+        .title {
+            font-weight: 800;
+            font-size: clamp(3rem, 12vw, 10rem);
+            line-height: 0.85;
+            letter-spacing: -0.04em;
+            margin-bottom: 1rem;
+            animation: reveal 1.2s cubic-bezier(0.77, 0, 0.175, 1);
+        }
+
+        .subtitle {
+            font-weight: 500;
+            font-size: clamp(1rem, 2vw, 1.5rem);
+            max-width: 500px;
+            opacity: 0.6;
+        }
+
+        .tagline {
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-size: 0.8rem;
+        }
+
+        @keyframes reveal {
+            from { transform: translateY(100%); clip-path: inset(0 0 100% 0); }
+            to { transform: translateY(0); clip-path: inset(0 0 0 0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="slide">
+        <div class="panel-top">
+            <div class="brand-mark">NOMAD EAGLE</div>
+            <h1 class="title">FINANCIAL<br>DNA</h1>
+            <p class="subtitle">A high-integrity ledger system for sovereign households.</p>
+        </div>
+        <div class="panel-bottom">
+            <div class="tagline">Pitch Deck 2026</div>
+            <div class="tagline">Internal Use Only</div>
+        </div>
+    </div>
+</body>
+</html>

@@ -23,6 +23,28 @@ export async function getCategories() {
     return categories
 }
 
+export async function getPlannerCategories() {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.householdId) return []
+
+    const flows = await prisma.recurringFlow.findMany({
+        where: {
+            householdId: session.user.householdId,
+            isActive: true,
+            deletedAt: null
+        },
+        orderBy: { name: 'asc' }
+    })
+
+    return flows.map(f => ({
+        id: f.id,
+        name: f.name,
+        icon: f.type === 'INCOME' ? "📈" : "📉",
+        type: f.type,
+        isPlannerItem: true
+    }))
+}
+
 type ActionState = {
     error?: string
     success?: boolean

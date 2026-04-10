@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Style C: Swiss Modern</title>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@800&family=Nunito:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #ffffff;
+            --text: #000000;
+            --accent: #ff3300;
+            --grid: #eeeeee;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .slide {
+            height: 100vh;
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            grid-template-rows: repeat(12, 1fr);
+            padding: 2rem;
+            background-image: 
+                linear-gradient(var(--grid) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+            background-size: calc(100% / 12) calc(100% / 12);
+        }
+
+        .header {
+            grid-column: 1 / span 12;
+            grid-row: 1;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid var(--text);
+            padding-bottom: 1rem;
+        }
+
+        .title-group {
+            grid-column: 1 / span 8;
+            grid-row: 4 / span 6;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .title {
+            font-family: 'Archivo', sans-serif;
+            font-size: clamp(4rem, 15vw, 12rem);
+            line-height: 0.8;
+            text-transform: uppercase;
+            letter-spacing: -0.05em;
+        }
+
+        .accent-box {
+            grid-column: 10 / span 3;
+            grid-row: 4 / span 3;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 800;
+            font-size: 2rem;
+            animation: grow 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .subtitle {
+            grid-column: 1 / span 6;
+            grid-row: 11;
+            font-size: clamp(1.2rem, 3vw, 2rem);
+            font-weight: 600;
+            border-top: 2px solid var(--text);
+            padding-top: 1rem;
+        }
+
+        @keyframes grow {
+            from { transform: scaleX(0); transform-origin: left; }
+            to { transform: scaleX(1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="slide">
+        <div class="header">
+            <div>NOMAD EAGLE</div>
+            <div>2026.04.07</div>
+        </div>
+        <div class="title-group">
+            <h1 class="title">THE<br>TRUTH</h1>
+        </div>
+        <div class="accent-box">DNA</div>
+        <p class="subtitle">Operationalizing financial sovereignty through protocol-driven design.</p>
+    </div>
+</body>
+</html>

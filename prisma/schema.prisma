@@ -22,6 +22,12 @@ enum AccountType {
   CASH
 }
 
+enum StrategicBucket {
+  CAPITAL_INFLOW
+  FIXED_OBLIGATION
+  VARIABLE_ALLOCATION
+}
+
 enum TransactionType {
   INCOME
   EXPENSE
@@ -55,6 +61,7 @@ model User {
 
   incomeHistory       IncomeHistory[]
   investmentScenarios InvestmentScenario[]
+  investmentPositions InvestmentPosition[] @relation("InvestmentOwner")
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt
@@ -112,6 +119,8 @@ model Household {
 
   // Direct Transactions (Optimization)
   transactions Transaction[]
+  ledgerEntries LedgerEntry[]
+  investmentPositions InvestmentPosition[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt
@@ -134,6 +143,7 @@ model Account {
 
   transactions Transaction[]
   positions    InvestmentPosition[]
+  ledgerEntries LedgerEntry[]
 
   isArchived Boolean @default(false)
 
@@ -175,6 +185,7 @@ model Category {
 
   transactions Transaction[]
   budgetLimits BudgetLimit[]
+  recurringFlows RecurringFlow[]
 }
 
 model Transaction {
@@ -189,23 +200,22 @@ model Transaction {
   categoryId String?
   category   Category? @relation(fields: [categoryId], references: [id])
 
+  // Ternary Taxonomy (Structural Decoupling)
+  bucket     StrategicBucket @default(VARIABLE_ALLOCATION)
+  tags       String[]        // Atomic metadata (descriptions, vendors)
+
   accountId String?
   account   Account? @relation(fields: [accountId], references: [id])
 
   tripId String?
   trip   Trip?   @relation(fields: [tripId], references: [id])
 
-  // Optimization: Denormalize householdId for fast queries
-  householdId String? // Optional for migration, fill with script or default? 
-  // Actually, for this exercise let's just use it. 
-  // Wait, if I add it I need to backfill it. 
-  // Can I query by account.householdId? Yes, but joining is slower.
-  // The prompt asked to index [householdId, date]. This implies adding the field.
-  // Let's add it as optional or assume it exists. 
+  recurringFlowId String?
+  recurringFlow   RecurringFlow? @relation(fields: [recurringFlowId], references: [id])
 
-  // Realistically, to index on it, it must exist.
-  // Adding it now.
-  household Household? @relation(fields: [householdId], references: [id])
+  // Optimization: Denormalize householdId for fast queries
+  householdId String? 
+  household   Household? @relation(fields: [householdId], references: [id])
 
   spentByUserId String?
   spentBy       User?   @relation("SpentBy", fields: [spentByUserId], references: [id])
@@ -217,9 +227,10 @@ model Transaction {
   updatedAt DateTime  @default(now()) @updatedAt
   deletedAt DateTime?
 
-  @@index([accountId, date]) // Existing implicit or useful?
-  @@index([householdId, date]) // For "Recent Activity" list
-  @@index([categoryId]) // For "Spending by Category" charts
+  @@index([accountId, date])
+  @@index([householdId, date])
+  @@index([categoryId])
+  @@index([recurringFlowId])
 }
 
 model Subscription {
@@ -252,6 +263,12 @@ model InvestmentPosition {
   id        String  @id @default(cuid())
   accountId String
   account   Account @relation(fields: [accountId], references: [id])
+
+  householdId String
+  household   Household @relation(fields: [householdId], references: [id])
+
+  ownerId String?
+  owner   User? @relation("InvestmentOwner", fields: [ownerId], references: [id])
 
   ticker     String? // Optional for Manual assets
   name       String // Display name (e.g. "Apple Inc" or "Apt 4B")
@@ -292,7 +309,6 @@ enum Frequency {
   ANNUAL
   ONE_TIME
   WEEKLY
-  YEARLY
 }
 
 model RecurringFlow {
@@ -306,11 +322,22 @@ model RecurringFlow {
   householdId String
   household   Household @relation(fields: [householdId], references: [id])
 
+  // Relational Pulse: Anchor flows to boundaries
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
+
+  // Ternary Taxonomy (Structural Decoupling)
+  bucket     StrategicBucket @default(VARIABLE_ALLOCATION)
+  tags       String[]        // Atomic metadata (descriptions, vendors)
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt
   deletedAt DateTime?
 
+  transactions Transaction[]
+
   @@index([householdId, isActive]) // For fetching active flow plans
+  @@index([categoryId])
 }
 
 model BudgetLimit {
@@ -414,4 +441,44 @@ model InvestmentScenario {
   deletedAt DateTime?
 
   @@index([userId])
+}
+
+model LedgerTransaction {
+  id          String   @id @default(cuid())
+  type        String   // OPENING_BALANCE | TRANSACTION | RECONCILIATION
+  description String?
+  metadata    Json?    // Audit metadata blob
+  createdAt   DateTime @default(now())
+  entries     LedgerEntry[]
+}
+
+model LedgerEntry {
+  id            String   @id @default(cuid())
+  accountId     String
+  householdId   String
+  amount        Decimal  @db.Decimal(19, 4)
+  type          String   // DEBIT | CREDIT
+  ledgerTxId    String
+  createdAt     DateTime @default(now())
+
+  ledgerTx  LedgerTransaction @relation(fields: [ledgerTxId], references: [id])
+  account   Account           @relation(fields: [accountId], references: [id])
+  household Household         @relation(fields: [householdId], references: [id])
+
+  @@index([accountId])
+  @@index([householdId])
+}
+
+model TaskOutbox {
+  id          String   @id @default(cuid())
+  type        String   // e.g., "GENERATE_EMBEDDING"
+  payload     Json     // Task arguments
+  status      String   @default("PENDING") // PENDING | PROCESSING | COMPLETED | FAILED
+  attempts    Int      @default(0)
+  lastError   String?
+  scheduledAt DateTime @default(now())
+  processedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([status, scheduledAt])
 }

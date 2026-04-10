@@ -11,7 +11,8 @@ export type TransactionWithRelations = Prisma.TransactionGetPayload<{
     include: {
         category: true,
         account: { select: { id: true, name: true, currency: true, ownerId: true } },
-        spentBy: { select: { id: true, name: true, email: true, avatarUrl: true } }
+        spentBy: { select: { id: true, name: true, email: true, avatarUrl: true } },
+        recurringFlow: { select: { name: true } }
     }
 }>
 

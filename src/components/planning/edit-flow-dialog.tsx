@@ -21,12 +21,19 @@ import {
 } from "@/components/ui/select"
 import { updateRecurringFlow } from "@/server/actions/planning"
 import { useState } from "react"
-import { Pencil } from "lucide-react"
+import { Pencil, Link2 } from "lucide-react"
 
 import { SafeRecurringFlow } from "@/lib/types"
 
-export function EditFlowDialog({ flow }: { flow: SafeRecurringFlow }) {
+interface EditFlowDialogProps {
+    flow: SafeRecurringFlow
+    categories: any[]
+    limits: any[]
+}
+
+export function EditFlowDialog({ flow, categories, limits }: EditFlowDialogProps) {
     const [open, setOpen] = useState(false)
+    const [type, setType] = useState<"INCOME" | "EXPENSE">(flow.type as any)
 
     async function handleSubmit(formData: FormData) {
         await updateRecurringFlow(formData)
@@ -42,9 +49,12 @@ export function EditFlowDialog({ flow }: { flow: SafeRecurringFlow }) {
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
-                    <DialogTitle>Edit Recurring Item</DialogTitle>
+                    <DialogTitle className="flex items-center gap-2">
+                        <Link2 className="h-5 w-5 text-indigo-500" />
+                        Edit Strategic Flow
+                    </DialogTitle>
                     <DialogDescription>
-                        Update the details of this recurring income or expense.
+                        Update details and relational anchors for this item.
                     </DialogDescription>
                 </DialogHeader>
                 <form action={handleSubmit}>
@@ -60,6 +70,45 @@ export function EditFlowDialog({ flow }: { flow: SafeRecurringFlow }) {
                         </div>
 
                         <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="type" className="text-right">Flow Type</Label>
+                            <Select name="type" required value={type} onValueChange={(v: any) => setType(v)}>
+                                <SelectTrigger className="col-span-3">
+                                    <SelectValue placeholder="Select type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="INCOME">Income</SelectItem>
+                                    <SelectItem value="EXPENSE">Expense</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="bucket" className="text-right text-indigo-600 font-bold">Strategic Bucket</Label>
+                            <Select name="bucket" required defaultValue={(flow as any).bucket || (type === "INCOME" ? "CAPITAL_INFLOW" : "FIXED_OBLIGATION")}>
+                                <SelectTrigger className="col-span-3 border-indigo-200 bg-indigo-50/10">
+                                    <SelectValue placeholder="Select decision bucket" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="CAPITAL_INFLOW">Capital Inflow (Forecasting Base)</SelectItem>
+                                    <SelectItem value="FIXED_OBLIGATION">Fixed Obligation (Liability Anchor)</SelectItem>
+                                    <SelectItem value="VARIABLE_ALLOCATION">Variable Allocation (Optimizable Flow)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Metadata Tagging (The Decoupled Layer) */}
+                        <div className="grid grid-cols-4 items-center gap-4 border-t pt-4">
+                            <Label htmlFor="tags" className="text-right text-slate-500 italic">Audit Tags</Label>
+                            <Input
+                                id="tags"
+                                name="tags"
+                                placeholder="e.g. Lego, AWS, Rent, Hobby"
+                                defaultValue={(flow as any).tags?.join(", ") || ""}
+                                className="col-span-3 border-dashed"
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-4 items-center gap-4 border-t pt-4 mt-2">
                             <Label htmlFor="frequency" className="text-right">Frequency</Label>
                             <Select name="frequency" required defaultValue={flow.frequency}>
                                 <SelectTrigger className="col-span-3">
@@ -86,22 +135,9 @@ export function EditFlowDialog({ flow }: { flow: SafeRecurringFlow }) {
                                 required
                             />
                         </div>
-
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="type" className="text-right">Type</Label>
-                            <Select name="type" required defaultValue={flow.type}>
-                                <SelectTrigger className="col-span-3">
-                                    <SelectValue placeholder="Select type" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="INCOME">Income</SelectItem>
-                                    <SelectItem value="EXPENSE">Expense</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
                     </div>
                     <DialogFooter>
-                        <Button type="submit">Save Changes</Button>
+                        <Button type="submit" className="bg-slate-900">Update strategic flow</Button>
                     </DialogFooter>
                 </form>
             </DialogContent>

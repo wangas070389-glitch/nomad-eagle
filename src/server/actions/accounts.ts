@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { getServerSession } from "next-auth"
 import { revalidatePath } from "next/cache"
+import { container } from "../domain-container"
+import { Decimal } from "decimal.js"
 
 import { ActionState } from "@/lib/types"
 import { AccountType, Currency, Prisma } from "@prisma/client"
@@ -97,36 +99,37 @@ export async function updateAccount(
         const oldBalance = Number(account.balance)
         const newBalance = data.balance
 
-        // Balance Reconciliation Logic
+        // Balance Reconciliation Logic — Route through Domain Service
+        // This ensures an immutable LedgerEntry is created for every adjustment
         if (oldBalance !== newBalance) {
             const diff = newBalance - oldBalance
 
-            // Create a system transaction for the adjustment
-            await prisma.transaction.create({
-                data: {
-                    amount: Math.abs(diff),
-                    type: diff > 0 ? "INCOME" : "EXPENSE",
-                    description: "Manual Balance Adjustment",
-                    date: new Date(),
-                    currency: account.currency,
-                    accountId: account.id,
-                    householdId: account.householdId,
-                    spentByUserId: session.user.id,
-                }
+            await container.transactionService.execute({
+                amount: new Decimal(Math.abs(diff)),
+                type: diff > 0 ? "INCOME" : "EXPENSE",
+                description: "Manual Balance Adjustment",
+                date: new Date(),
+                accountId: account.id,
+                householdId: account.householdId,
+                userId: session.user.id,
             })
         }
 
+        // Update non-balance metadata (name, type, archive status)
+        // Note: Balance is already updated atomically by the domain service above
         await prisma.account.update({
             where: { id: accountId },
             data: {
                 name: data.name,
                 type: data.type as AccountType,
-                balance: data.balance,
-                isArchived: data.isArchived
+                isArchived: data.isArchived,
+                // Only set balance explicitly if no adjustment was made
+                ...(oldBalance === newBalance ? { balance: data.balance } : {})
             }
         })
 
         revalidatePath("/")
+        revalidatePath("/plan")
         return { success: true }
     } catch (e) {
         console.error(e)
@@ -147,12 +150,17 @@ export async function deleteAccount(accountId: string) {
     }
 
     try {
-        // Cascade delete transactions first (if not handled by DB cascade)
-        // Schema usually handles cascade if defined, but being safe:
+        // 1. Clean up LedgerEntry records to prevent orphaned references
+        await prisma.ledgerEntry.deleteMany({
+            where: { accountId }
+        })
+
+        // 2. Cascade delete transactions
         await prisma.transaction.deleteMany({
             where: { accountId }
         })
 
+        // 3. Delete the account itself
         await prisma.account.delete({
             where: { id: accountId }
         })

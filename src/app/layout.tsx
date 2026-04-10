@@ -38,21 +38,40 @@ export default function RootLayout({
       <body className={inter.className}>
         <Providers>{children}</Providers>
         <Toaster />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js').then(function(registration) {
-                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                  }, function(err) {
-                    console.log('ServiceWorker registration failed: ', err);
+        {process.env.NODE_ENV === "production" ? (
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                if ('serviceWorker' in navigator) {
+                  window.addEventListener('load', function() {
+                    navigator.serviceWorker.register('/sw.js').then(function(registration) {
+                      console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    }, function(err) {
+                      console.log('ServiceWorker registration failed: ', err);
+                    });
                   });
-                });
-              }
-            `,
-          }}
-        />
+                }
+              `,
+            }}
+          />
+        ) : (
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                if ('serviceWorker' in navigator) {
+                  navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    for(let registration of registrations) {
+                      registration.unregister().then(function() {
+                        console.log('Legacy ServiceWorker unregistered successfully');
+                        window.location.reload(); // Hard refresh once to clear the "poisoned" manifest
+                      });
+                    }
+                  });
+                }
+              `,
+            }}
+          />
+        )}
       </body>
     </html>
   );

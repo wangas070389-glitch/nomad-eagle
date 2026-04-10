@@ -86,34 +86,30 @@ const performSimulation = async (householdId: string, months: number, annualRetu
         let monthlyIncome = 0
         let monthlyExpenses = 0
 
-        // Fixed Flows Logic
+        // Fixed Flows Logic — Consolidated to match ProjectionDomainService.isFlowDue()
         for (const flow of flows) {
             const amt = Number(flow.amount)
             const startDate = new Date(flow.startDate)
-            const startMonth = startDate.getMonth()
-            const startYear = startDate.getFullYear()
+            const startNorm = new Date(startDate.getFullYear(), startDate.getMonth(), 1)
+            const targetNorm = new Date(currentYear, currentMonth, 1)
 
+            if (targetNorm < startNorm) continue
+
+            const diffMonths = (targetNorm.getFullYear() - startNorm.getFullYear()) * 12 + (targetNorm.getMonth() - startNorm.getMonth())
             let isDue = false
 
-            if (flow.frequency === "MONTHLY") {
-                isDue = true
-            } else if (flow.frequency === "QUARTERLY") {
-                const monthDiff = (currentMonth - startMonth) + (currentYear - startYear) * 12
-                if (monthDiff >= 0 && monthDiff % 3 === 0) isDue = true
-            } else if (flow.frequency === "SEMIANNUAL") {
-                const monthDiff = (currentMonth - startMonth) + (currentYear - startYear) * 12
-                if (monthDiff >= 0 && monthDiff % 6 === 0) isDue = true
-            } else if (flow.frequency === "ANNUAL") {
-                // Approximate hit
-                if (currentMonth === startMonth) isDue = true
-            } else if (flow.frequency === "ONE_TIME") {
-                if (currentMonth === startMonth && currentYear === startYear) isDue = true
-            } else if (flow.frequency === "WEEKLY") {
-                monthlyIncome += (flow.type === "INCOME" ? amt : 0) * 4.33
-                monthlyExpenses += (flow.type === "EXPENSE" ? amt : 0) * 4.33
-                continue
-            } else if (flow.frequency === "YEARLY") {
-                if (currentMonth === startMonth) isDue = true
+            switch (flow.frequency) {
+                case "MONTHLY": isDue = true; break
+                case "QUARTERLY": isDue = diffMonths % 3 === 0; break
+                case "SEMIANNUAL": isDue = diffMonths % 6 === 0; break
+                case "ANNUAL": case "YEARLY": isDue = diffMonths % 12 === 0; break
+                case "ONE_TIME": isDue = diffMonths === 0; break
+                case "WEEKLY":
+                    // Weekly flows contribute ~4.33x per month
+                    monthlyIncome += (flow.type === "INCOME" ? amt : 0) * 4.33
+                    monthlyExpenses += (flow.type === "EXPENSE" ? amt : 0) * 4.33
+                    continue
+                default: isDue = true
             }
 
             if (isDue) {

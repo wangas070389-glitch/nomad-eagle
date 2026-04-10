@@ -21,10 +21,16 @@ import {
 } from "@/components/ui/select"
 import { addRecurringFlow } from "@/server/actions/planning"
 import { useState } from "react"
-import { Plus } from "lucide-react"
+import { Plus, Link2 } from "lucide-react"
 
-export function AddFlowDialog() {
+interface AddFlowDialogProps {
+    categories: any[]
+    limits: any[]
+}
+
+export function AddFlowDialog({ categories, limits }: AddFlowDialogProps) {
     const [open, setOpen] = useState(false)
+    const [type, setType] = useState<"INCOME" | "EXPENSE">("INCOME")
 
     async function handleSubmit(formData: FormData) {
         await addRecurringFlow(formData)
@@ -43,16 +49,19 @@ export function AddFlowDialog() {
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
-                    <DialogTitle>Add Recurring Item</DialogTitle>
+                    <DialogTitle className="flex items-center gap-2">
+                        <Link2 className="h-5 w-5 text-indigo-500" />
+                        Add Strategic Flow
+                    </DialogTitle>
                     <DialogDescription>
-                        Something that happens regularly, like Salary, Rent, or an Annual Bonus.
+                        Define a recurring capital injection or liabilities.
                     </DialogDescription>
                 </DialogHeader>
                 <form action={handleSubmit}>
                     <div className="grid gap-4 py-4">
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="name" className="text-right">Name</Label>
-                            <Input id="name" name="name" placeholder="e.g. Annual Bonus" className="col-span-3" required />
+                            <Input id="name" name="name" placeholder="e.g. Salary" className="col-span-3" required />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="amount" className="text-right">Amount</Label>
@@ -60,7 +69,45 @@ export function AddFlowDialog() {
                         </div>
 
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="frequency" className="text-right">Frequency</Label>
+                            <Label htmlFor="type" className="text-right">Flow Type</Label>
+                            <Select name="type" required value={type} onValueChange={(v: any) => setType(v)}>
+                                <SelectTrigger className="col-span-3">
+                                    <SelectValue placeholder="Select type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="INCOME">Income</SelectItem>
+                                    <SelectItem value="EXPENSE">Expense</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="bucket" className="text-right text-indigo-600 font-bold">Strategic Bucket</Label>
+                            <Select name="bucket" required defaultValue={type === "INCOME" ? "CAPITAL_INFLOW" : "FIXED_OBLIGATION"}>
+                                <SelectTrigger className="col-span-3 border-indigo-200 bg-indigo-50/10">
+                                    <SelectValue placeholder="Select decision bucket" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="CAPITAL_INFLOW">Capital Inflow (Forecasting Base)</SelectItem>
+                                    <SelectItem value="FIXED_OBLIGATION">Fixed Obligation (Liability Anchor)</SelectItem>
+                                    <SelectItem value="VARIABLE_ALLOCATION">Variable Allocation (Optimizable Flow)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Metadata Tagging (The Decoupled Layer) */}
+                        <div className="grid grid-cols-4 items-center gap-4 border-t pt-4">
+                            <Label htmlFor="tags" className="text-right text-slate-500 italic">Audit Tags</Label>
+                            <Input
+                                id="tags"
+                                name="tags"
+                                placeholder="e.g. Lego, AWS, Rent, Hobby"
+                                className="col-span-3 border-dashed"
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-4 items-center gap-4 border-t pt-2 mt-2">
+                            <Label htmlFor="frequency" className="text-right font-medium">Frequency</Label>
                             <Select name="frequency" required defaultValue="MONTHLY">
                                 <SelectTrigger className="col-span-3">
                                     <SelectValue placeholder="Select frequency" />
@@ -87,21 +134,12 @@ export function AddFlowDialog() {
                             />
                         </div>
 
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="type" className="text-right">Type</Label>
-                            <Select name="type" required defaultValue="INCOME">
-                                <SelectTrigger className="col-span-3">
-                                    <SelectValue placeholder="Select type" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="INCOME">Income</SelectItem>
-                                    <SelectItem value="EXPENSE">Expense</SelectItem>
-                                </SelectContent>
-                            </Select>
+                        <div className="pt-2 text-[10px] text-slate-400 text-center italic">
+                            DIMENSIONAL NOISE ELIMINATED. SOLVENCY ENGAGED.
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button type="submit">Save</Button>
+                        <Button type="submit" className="bg-slate-900">Finalize strategic flow</Button>
                     </DialogFooter>
                 </form>
             </DialogContent>

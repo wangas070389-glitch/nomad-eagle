@@ -2,304 +2,180 @@
 
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { TransactionType } from "@prisma/client"
 import { getServerSession } from "next-auth"
 import { revalidatePath } from "next/cache"
-import { z } from "zod"
-import { ActionState } from "@/lib/types"
-import { generateEmbedding } from "@/lib/embedding"
+import { Decimal } from "decimal.js"
+import { container } from "../domain-container"
+import { getCategories } from "./categories"
 
-const createTransactionSchema = z.object({
-    amount: z.number().positive(),
-    date: z.string().transform((str) => new Date(str)),
-    description: z.string().max(100),
-    type: z.enum(["INCOME", "EXPENSE", "TRANSFER"]),
-    categoryId: z.string().optional(),
-    accountId: z.string().optional(),
-    fromAccountId: z.string().optional(),
-    toAccountId: z.string().optional(),
-    spentByUserId: z.string()
-}).refine(data => {
-    if (data.type === 'TRANSFER') {
-        return !!data.fromAccountId && !!data.toAccountId && data.fromAccountId !== data.toAccountId
-    }
-    return !!data.accountId
-}, {
-    message: "Invalid account selection for transaction type"
-})
+export { getCategories } // For backward compatibility with dashboard imports
 
-export async function seedCategories(formData: FormData) {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.householdId) return { error: "No household" }
-
-    const defaults = [
-        { name: "Housing", icon: "🏠", type: "EXPENSE" },
-        { name: "Groceries", icon: "🛒", type: "EXPENSE" },
-        { name: "Transport", icon: "🚗", type: "EXPENSE" },
-        { name: "Dining Out", icon: "🍔", type: "EXPENSE" },
-        { name: "Retirement/Afore", icon: "👴", type: "EXPENSE" }, // Or Investment, but tracking as expense flow?
-        { name: "Salary", icon: "💰", type: "INCOME" },
-        { name: "Investments", icon: "📈", type: "EXPENSE" },
-    ]
-
-    // Check existing
-    const count = await prisma.category.count({ where: { householdId: session.user.householdId } })
-    if (count > 0) return { success: true, message: "Already seeded" }
-
-    await prisma.category.createMany({
-        data: defaults.map(d => ({
-            ...d,
-            type: d.type as TransactionType,
-            householdId: session.user.householdId!
-        }))
-    })
-
-    return { success: true }
+export interface ManualReconciliationInput {
+    amount: number
+    date: string
+    description: string
+    plannedItemId: string
+    type: 'BUDGET_LIMIT' | 'RECURRING_FLOW'
+    accountId: string
 }
 
-export async function getCategories() {
+/**
+ * High-Friction Transaction Creation.
+ * Enforces a real-time logical handshake between manual entries and pre-authorized boundaries.
+ */
+export async function reconcileManualTransaction(input: ManualReconciliationInput) {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.householdId) return []
+    if (!session?.user?.householdId) return { error: "Not authenticated" }
 
-    return await prisma.category.findMany({
-        where: {
-            OR: [
-                { householdId: null }, // System
-                { householdId: session.user.householdId } // Custom
-            ],
-            isArchived: false
-        },
-        orderBy: { name: 'asc' }
-    })
-}
-
-
-
-export async function createTransaction(prevState: ActionState, formData: FormData): Promise<ActionState> {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id || !session.user.householdId) return { error: "Not authenticated" }
-
-    const parseResult = createTransactionSchema.safeParse({
-        amount: Number(formData.get("amount")),
-        date: formData.get("date"),
-        description: formData.get("description"),
-        type: formData.get("type"),
-        categoryId: formData.get("categoryId") || undefined,
-        accountId: formData.get("accountId") || undefined,
-        fromAccountId: formData.get("fromAccountId") || undefined,
-        toAccountId: formData.get("toAccountId") || undefined,
-        spentByUserId: formData.get("spentByUserId") || session.user.id
-    })
-
-    if (!parseResult.success) {
-        return { error: "Invalid input: " + parseResult.error.issues.map(i => i.message).join(", ") }
-    }
-
-    const { amount, date, description, type, categoryId, accountId, fromAccountId, toAccountId, spentByUserId } = parseResult.data
-
-    // Common validations
-    if (categoryId) {
-        const category = await prisma.category.findUnique({ where: { id: categoryId } })
-        if (!category) return { error: "Invalid category" }
-        if (category.householdId && category.householdId !== session.user.householdId) {
-            return { error: "Unauthorized category" }
-        }
-    }
+    const householdId = session.user.householdId
 
     try {
-        if (type === "TRANSFER") {
-            const fromAccount = await prisma.account.findUnique({ where: { id: fromAccountId } })
-            const toAccount = await prisma.account.findUnique({ where: { id: toAccountId } })
+        // Enforce Relational Integrity via Domain Service
+        const transactionId = await container.transactionService.execute({
+            amount: new Decimal(input.amount),
+            date: new Date(input.date),
+            description: input.description,
+            type: 'EXPENSE',
+            householdId,
+            userId: session.user.id,
+            accountId: input.accountId,
+            // The Deterministic Handshake
+            budgetLimitId: input.type === 'BUDGET_LIMIT' ? input.plannedItemId : undefined,
+            recurringFlowId: input.type === 'RECURRING_FLOW' ? input.plannedItemId : undefined,
+        })
 
-            if (!fromAccount || !toAccount) return { error: "One or both accounts not found" }
-
-            // Check access
-            if (fromAccount.householdId !== session.user.householdId ||
-                toAccount.householdId !== session.user.householdId) {
-                return { error: "Unauthorized: Account belongs to another household" }
-            }
-
-            // Personal ownership check (Debit Authority Only)
-            // Rule Update (ADR 016 Addendum): "Trusted Household" Model.
-            // We allow any household member to log a transfer FROM any account in the household.
-            // This enables "Admin" users (e.g. wife) to log transfers for their partners.
-            // effectively removing the blocking check:
-            // if (fromAccount.ownerId && fromAccount.ownerId !== session.user.id) ...
-
-            const transactionResult = await prisma.$transaction(async (tx) => {
-                // 1. Withdrawal from Source
-                const tx1 = await tx.transaction.create({
-                    data: {
-                        amount: -amount, // Negative for outflow
-                        date,
-                        description: `Transfer to ${toAccount.name}: ${description}`,
-                        type: "TRANSFER",
-                        categoryId,
-                        accountId: fromAccountId,
-                        currency: fromAccount.currency,
-                        spentByUserId,
-                        householdId: session.user.householdId
-                    }
-                })
-
-                // Embedding generation moved outside transaction to prevent 25P02 aborts
-
-                await tx.account.update({
-                    where: { id: fromAccountId },
-                    data: { balance: { decrement: amount } }
-                })
-
-                // 2. Deposit to Destination
-                const tx2 = await tx.transaction.create({
-                    data: {
-                        amount: amount, // Positive for inflow
-                        date,
-                        description: `Transfer from ${fromAccount.name}: ${description}`,
-                        type: "TRANSFER",
-                        categoryId,
-                        accountId: toAccountId,
-                        currency: toAccount.currency,
-                        spentByUserId,
-                        householdId: session.user.householdId
-                    }
-                })
-
-                // Embedding generation moved outside transaction
-
-                await tx.account.update({
-                    where: { id: toAccountId },
-                    data: { balance: { increment: amount } }
-                })
-                return { tx1Id: tx1.id, tx2Id: tx2.id }
-            })
-
-            // Async Embedding Generation (Fire and Forget or Await)
-            // We await it here to ensure UI shows it if needed, but in separate scope so it doesn't fail the transfer.
-            const { tx1Id, tx2Id } = transactionResult
-
-            try {
-                const embedding1 = await generateEmbedding(`Transfer to ${toAccount.name}: ${description}`)
-                await prisma.$executeRawUnsafe(
-                    `UPDATE "Transaction" SET "descriptionEmbedding" = '${JSON.stringify(embedding1)}'::vector WHERE id = '${tx1Id}'`
-                )
-            } catch (e) { console.error("Embedding 1 failed", e) }
-
-            try {
-                const embedding2 = await generateEmbedding(`Transfer from ${fromAccount.name}: ${description}`)
-                await prisma.$executeRawUnsafe(
-                    `UPDATE "Transaction" SET "descriptionEmbedding" = '${JSON.stringify(embedding2)}'::vector WHERE id = '${tx2Id}'`
-                )
-            } catch (e) { console.error("Embedding 2 failed", e) }
-
-        } else {
-            // Standard Income/Expense
-            const account = await prisma.account.findUnique({ where: { id: accountId } })
-            if (!account) return { error: "Account not found" }
-
-            // Security Fix (ADR 0005): Enforce Household Isolation
-            if (account.householdId !== session.user.householdId) {
-                return { error: "Unauthorized access to this account" }
-            }
-
-            if (account.ownerId && account.ownerId !== session.user.id) {
-                return { error: "Unauthorized access to this account" }
-            }
-
-            const balanceChange = type === "INCOME" ? amount : -amount
-
-            const savedTx = await prisma.$transaction(async (tx) => {
-                const newTx = await tx.transaction.create({
-                    data: {
-                        amount,
-                        date,
-                        description,
-                        type,
-                        categoryId,
-                        accountId,
-                        currency: account.currency,
-                        spentByUserId,
-                        householdId: session.user.householdId
-                    }
-                })
-
-                await tx.account.update({
-                    where: { id: accountId },
-                    data: { balance: { increment: balanceChange } }
-                })
-
-                return newTx
-            })
-
-            // Async Embedding Generation (Outside Transaction)
-            try {
-                const embedding = await generateEmbedding(description)
-                const vector = `[${embedding.join(",")}]`
-                await prisma.$executeRawUnsafe(
-                    `UPDATE "Transaction" SET "descriptionEmbedding" = '${vector}'::vector WHERE id = '${savedTx.id}'`
-                )
-            } catch (e) {
-                console.error("Failed to generate embedding for newTx", e)
-            }
-        }
-
-        revalidatePath("/dashboard")
-        return { success: true }
-    } catch (e) {
-        console.error(e)
-        return { error: e instanceof Error ? e.message : "Transaction failed" }
+        revalidatePath("/plan")
+        revalidatePath("/")
+        return { success: true, id: transactionId }
+    } catch (err) {
+        console.error("Manual Reconciliation Failure:", err)
+        return { error: "Failed to create high-friction transaction" }
     }
 }
 
-// allow explicit skip, or fallback to page calc
-export async function getTransactions(page: number = 1, pageSize: number = 50, skip?: number) {
+/**
+ * Legacy Support: Fetch transactions for the dashboard
+ * Serializes Prisma Decimals for Safe Client Component consumption.
+ */
+export async function getTransactions(page: number = 1, pageSize: number = 20, skipCount: number = 0) {
     const session = await getServerSession(authOptions)
     if (!session?.user?.householdId) return []
 
-    // Fetch transactions for all accounts visible to user
-    // Visible accounts = Joint OR Personal(Me)
-    // We can filter by Accounts.
-
-    const accounts = await prisma.account.findMany({
-        where: {
-            householdId: session.user.householdId
+    const txs = await prisma.transaction.findMany({
+        where: { householdId: session.user.householdId },
+        include: { 
+            category: true, 
+            account: true, 
+            spentBy: true,
+            recurringFlow: { select: { name: true } }
         },
-        select: { id: true }
-    })
-
-    const accountIds = accounts.map(a => a.id)
-
-    const transactions = await prisma.transaction.findMany({
-        where: {
-            accountId: { in: accountIds }
-        },
-        include: {
-            category: true,
-            account: {
-                select: {
-                    id: true,
-                    name: true,
-                    currency: true,
-                    ownerId: true
-                }
-            },
-            spentBy: {
-                select: {
-                    id: true,
-                    name: true,
-                    email: true,
-                    avatarUrl: true
-                }
-            }
-        },
-        orderBy: {
-            date: 'desc'
-        },
-        skip: skip !== undefined ? skip : (page - 1) * pageSize,
+        orderBy: { date: 'desc' },
+        skip: skipCount || (page - 1) * pageSize,
         take: pageSize
     })
 
-    return transactions.map(tx => ({
+    // Serialize Decimals and Dates for RSC transport
+    return txs.map(tx => ({
         ...tx,
-        amount: Number(tx.amount)
+        amount: Number(tx.amount),
+        account: tx.account ? { ...tx.account, balance: Number(tx.account.balance) } : null,
+        category: tx.category ? { ...tx.category } : null, // Ensure category is spread
+        spentBy: tx.spentBy ? { ...tx.spentBy } : null,
+        recurringFlow: (tx as any).recurringFlow ? { ...(tx as any).recurringFlow } : null,
     }))
+}
+
+/**
+ * Legacy Support: Standard Transaction Creation (Non-handshaked)
+ * Updated for Next.js 15 'useActionState' compatibility.
+ */
+export async function createTransaction(prevState: any, input: FormData | any) {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.householdId) return { error: "Not authenticated" }
+
+    let amount, date, description, categoryId, accountId, type;
+
+    // Support both useActionState (prevState, formData) and direct calls (dataObject)
+    let actualData = input;
+    if (!input && prevState instanceof FormData) {
+        // This handles cases where useActionState might wrap the action differently
+        actualData = prevState;
+    }
+
+    if (actualData instanceof FormData) {
+        amount = actualData.get("amount") as string
+        date = actualData.get("date") as string
+        description = actualData.get("description") as string
+        categoryId = actualData.get("categoryId") as string
+        accountId = actualData.get("accountId") as string
+        type = (actualData.get("type") as string) || 'EXPENSE'
+    } else {
+        // Fallback for cases where it's called with a plain object as the 2nd arg
+        const data = actualData;
+        amount = data.amount
+        date = data.date
+        description = data.description
+        categoryId = data.categoryId
+        accountId = data.accountId
+        type = data.type || 'EXPENSE'
+    }
+
+    const recurringFlowId = actualData instanceof FormData ? (actualData.get("recurringFlowId") as string) : (actualData as any).recurringFlowId
+    const budgetLimitId = actualData instanceof FormData ? (actualData.get("budgetLimitId") as string) : (actualData as any).budgetLimitId
+    const finalCategoryId = actualData instanceof FormData ? (actualData.get("categoryId") as string) : (actualData as any).categoryId
+
+    try {
+        // Use Domain Service for Atomic Execution & Ledgering
+        const transactionId = await container.transactionService.execute({
+            amount: new Decimal(amount),
+            date: new Date(date),
+            description,
+            type: type as any,
+            householdId: session.user.householdId,
+            userId: session.user.id,
+            accountId,
+            categoryId: finalCategoryId || undefined,
+            recurringFlowId: recurringFlowId || undefined,
+            budgetLimitId: budgetLimitId || undefined
+        })
+
+        revalidatePath("/")
+        revalidatePath("/plan")
+        return { success: true, id: transactionId }
+    } catch (e) {
+        console.error("Create Transaction Error:", e)
+        return { error: "Failed to create transaction and update balance" }
+    }
+}
+
+/**
+ * Legacy Support: Seed Default Categories
+ */
+export async function seedCategories(formData: FormData) {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.householdId) return { error: "Not authenticated" }
+
+    const defaults = [
+        { name: "Housing", icon: "🏠", type: "EXPENSE" as const },
+        { name: "Food", icon: "🍱", type: "EXPENSE" as const },
+        { name: "Transport", icon: "🚗", type: "EXPENSE" as const },
+        { name: "Salary", icon: "💰", type: "INCOME" as const }
+    ]
+
+    try {
+        await Promise.all(defaults.map(d => 
+            prisma.category.create({
+                data: { 
+                    name: d.name,
+                    icon: d.icon,
+                    type: d.type as any, // Cast to any to bypass stale prisma client types
+                    householdId: session.user.householdId 
+                }
+            })
+        ))
+        revalidatePath("/")
+        return { success: true }
+    } catch (e) {
+        return { error: "Seeding failed" }
+    }
 }

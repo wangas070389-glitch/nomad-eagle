@@ -6,7 +6,6 @@ import { getServerSession } from "next-auth"
 import { revalidatePath, revalidateTag } from "next/cache"
 
 import { ActionState } from "@/lib/types"
-import { randomBytes } from "crypto"
 
 export async function generateInviteCode() {
     const session = await getServerSession(authOptions)
@@ -45,47 +44,29 @@ export async function generateInviteCode() {
 
 export async function createHousehold(prevState: ActionState, formData: FormData) {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.householdId) return { error: "Not authenticated" }
+    if (!session?.user?.id) return { error: "Not authenticated" }
 
-    const categoryId = formData.get("categoryId") as string
-    const amount = Number(formData.get("amount"))
-
-    if (!categoryId) return { error: "Missing category" }
+    const name = formData.get("name") as string
+    if (!name || name.length < 2) return { error: "Invalid household name" }
 
     try {
-        if (amount <= 0) {
-            // Remove limit if 0 or negative
-            // Make sure to handle "not found" gracefully or use deleteMany
-            await prisma.budgetLimit.deleteMany({
-                where: {
-                    categoryId,
-                    householdId: session.user.householdId
-                }
-            })
-        } else {
-            await prisma.budgetLimit.upsert({
-                where: {
-                    categoryId_period: {
-                        categoryId,
-                        period: "MONTHLY" // Defaulting to monthly for now
-                    }
-                },
-                update: { amount },
-                create: {
-                    categoryId,
-                    amount,
-                    householdId: session.user.householdId,
-                    period: "MONTHLY"
-                }
-            })
-        }
+        const household = await prisma.household.create({
+            data: {
+                name,
+                ownerId: session.user.id
+            }
+        })
 
-        // revalidateTag(`forecast-household-${session.user.householdId}`)
-        revalidatePath("/plan")
+        await prisma.user.update({
+            where: { id: session.user.id },
+            data: { householdId: household.id }
+        })
+
         revalidatePath("/")
         return { success: true }
     } catch (e) {
-        return { error: "Failed to set budget limit" }
+        console.error("Failed to create household:", e)
+        return { error: "Failed to create household" }
     }
 }
 

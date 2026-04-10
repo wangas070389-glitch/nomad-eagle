@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { getServerSession } from "next-auth"
 import { revalidatePath } from "next/cache"
+import { container } from "../domain-container"
+import { Decimal } from "decimal.js"
 
 export async function createTrip(formData: FormData) {
     const session = await getServerSession(authOptions)
@@ -143,6 +145,7 @@ export async function addTripTransaction(formData: FormData) {
     const amount = Number(formData.get("amount"))
     const description = formData.get("description") as string
     const payerId = formData.get("payerId") as string // Who paid?
+    const accountId = formData.get("accountId") as string | null // Optional account link
 
     // Security: Verify user is member of trip
     const member = await prisma.tripMember.findUnique({
@@ -151,29 +154,37 @@ export async function addTripTransaction(formData: FormData) {
     if (!member) return { error: "Unauthorized" }
 
     try {
-        // Ghost Transaction Logic:
-        // If payer is ME, I likely want to link it to MY bank account.
-        // If payer is FRIEND, they might not have a bank account in my system.
-        // For MVP: Simplest is generic 'Cash/Manual' transaction unless user selects an account.
-
-        // Let's assume generic "Trip Expense" (Cash) for now to support Ghost users.
-        // If we want real sync, we'd need account selection.
-
-        await prisma.transaction.create({
-            data: {
-                amount,
-                description,
+        if (accountId) {
+            // Linked Transaction: Route through Domain Service for full
+            // ledger integrity (balance update + immutable entry)
+            await container.transactionService.execute({
+                amount: new Decimal(amount),
+                description: `[Trip] ${description}`,
                 date: new Date(),
-                currency: "USD", // MVP
                 type: "EXPENSE",
-                tripId,
-                spentByUserId: payerId,
-                householdId: session.user.householdId, // Optional, might be null if Guest
-                // No account ID -> "Ghost" / Cash
-            }
-        })
+                accountId,
+                householdId: session.user.householdId!,
+                userId: payerId,
+            })
+        } else {
+            // Ghost Transaction: No bank account link (friend/cash)
+            // Lightweight record for trip splitting only
+            await prisma.transaction.create({
+                data: {
+                    amount,
+                    description,
+                    date: new Date(),
+                    currency: "USD",
+                    type: "EXPENSE",
+                    tripId,
+                    spentByUserId: payerId,
+                    householdId: session.user.householdId,
+                }
+            })
+        }
 
         revalidatePath(`/trips/${tripId}`)
+        revalidatePath("/")
         return { success: true }
     } catch (e) {
         console.error(e)

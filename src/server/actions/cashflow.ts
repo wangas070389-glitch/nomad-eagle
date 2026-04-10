@@ -3,10 +3,20 @@
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { getServerSession } from "next-auth"
+import { container } from "../domain-container"
+import { Decimal } from "decimal.js"
+
+export type ReconciliationCell = {
+    planned: number
+    actual: number
+    remaining: number
+}
 
 export type CashFlowRow = {
+    id?: string
     name: string
-    values: number[]
+    reconciliationType?: 'BUDGET_LIMIT' | 'RECURRING_FLOW'
+    values: (number | ReconciliationCell)[]
 }
 
 export type DetailedCashFlow = {
@@ -17,7 +27,7 @@ export type DetailedCashFlow = {
         totalIncome: number[]
         totalExpense: number[]
         netFlow: number[]
-        endingBalance: number[] // Cash Surplus accumulation
+        endingBalance: number[]
     }
 }
 
@@ -27,32 +37,44 @@ export async function getDetailedCashFlow(months: number = 12): Promise<Detailed
 
     const householdId = session.user.householdId
 
-    // 1. Fetch Data
-    const flows = await prisma.recurringFlow.findMany({
-        where: { householdId, isActive: true },
-        orderBy: { amount: 'desc' }
-    })
-    const budgetLimits = await prisma.budgetLimit.findMany({
-        where: { householdId },
-        include: { category: true }
+    // 1. Fetch Inputs
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), 1)
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+
+    const [flows, accounts, currentTransactions] = await Promise.all([
+        prisma.recurringFlow.findMany({ where: { householdId, isActive: true } }),
+        prisma.account.findMany({ where: { householdId } }),
+        prisma.transaction.findMany({
+            where: {
+                householdId,
+                date: { gte: startOfMonth, lte: endOfMonth }
+            }
+        })
+    ])
+
+    const totalCurrentBalance = accounts.reduce((sum, acc) => sum.plus(new Decimal(acc.balance.toString())), new Decimal(0))
+    
+    // Aggregate Budget Limits (Hardened Cap)
+        // 2. Generate Deterministic Solvency Projection (Domain logic)
+    const points = await container.projectionService.generateHardenedProjection({
+        householdId,
+        startingBalance: totalCurrentBalance,
+        recurringFlows: flows.map(f => ({
+            id: f.id,
+            name: f.name,
+            amount: new Decimal(f.amount.toString()),
+            type: f.type as 'INCOME' | 'EXPENSE',
+            frequency: f.frequency,
+            startDate: f.startDate,
+            bucket: (f as any).bucket
+        })),
+        months
     })
 
-    // 2. Initialize Structure
+    // 3. Transform to UI Structure
     const headers: string[] = []
-    const inflowsMap = new Map<string, number[]>()
-    const outflowsMap = new Map<string, number[]>()
-
-    // Initialize rows with 0s
-    flows.forEach(f => {
-        const map = f.type === "INCOME" ? inflowsMap : outflowsMap
-        map.set(f.name, new Array(months).fill(0))
-    })
-
-    // Add Budget Limits to Outflows
-    budgetLimits.forEach(b => {
-        outflowsMap.set(b.category.name, new Array(months).fill(0))
-    })
-
     const summary = {
         totalIncome: new Array(months).fill(0),
         totalExpense: new Array(months).fill(0),
@@ -60,75 +82,111 @@ export async function getDetailedCashFlow(months: number = 12): Promise<Detailed
         endingBalance: new Array(months).fill(0)
     }
 
-    const today = new Date()
-    let runningBalance = 0
+    points.forEach((p, i) => {
+        // Headers should EXACTLY match the projection points' dates
+        headers.push(p.date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }))
+        
+        summary.totalIncome[i] = p.inflow.toNumber()
+        summary.totalExpense[i] = p.outflow.toNumber()
+        summary.netFlow[i] = p.inflow.minus(p.outflow).toNumber()
+        summary.endingBalance[i] = p.balance.toNumber()
+    })
 
-    // 3. Time Loop
-    for (let i = 1; i <= months; i++) {
-        const futureDate = new Date(today.getFullYear(), today.getMonth() + i, 1)
-        const currentMonth = futureDate.getMonth()
-        const currentYear = futureDate.getFullYear()
+    // 4. Construct Spreadsheet Rows (Granular Splits)
+    const inflowRowsMap: Record<string, { id?: string, reconciliationType?: 'BUDGET_LIMIT' | 'RECURRING_FLOW', values: (number | ReconciliationCell)[] }> = {}
+    const outflowRowsMap: Record<string, { id?: string, reconciliationType?: 'BUDGET_LIMIT' | 'RECURRING_FLOW', values: (number | ReconciliationCell)[] }> = {}
 
-        headers.push(futureDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }))
-        const arrayIndex = i - 1
-
-        let monthlyIncome = 0
-        let monthlyExpense = 0
-
-        // Process Recurring Flows
-        for (const flow of flows) {
-            const amt = Number(flow.amount)
-            const startDate = new Date(flow.startDate)
-            const startMonth = startDate.getMonth()
-            const startYear = startDate.getFullYear()
-            let isDue = false
-
-            if (flow.frequency === "MONTHLY") {
-                isDue = true
-            } else if (flow.frequency === "QUARTERLY") {
-                const monthDiff = (currentMonth - startMonth) + (currentYear - startYear) * 12
-                if (monthDiff >= 0 && monthDiff % 3 === 0) isDue = true
-            } else if (flow.frequency === "SEMIANNUAL") {
-                const monthDiff = (currentMonth - startMonth) + (currentYear - startYear) * 12
-                if (monthDiff >= 0 && monthDiff % 6 === 0) isDue = true
-            } else if (flow.frequency === "ANNUAL") {
-                if (currentMonth === startMonth) isDue = true
-            } else if (flow.frequency === "ONE_TIME") {
-                if (currentMonth === startMonth && currentYear === startYear) isDue = true
-            } else if (flow.frequency === "YEARLY") {
-                if (currentMonth === startMonth) isDue = true
+    points.forEach((p, i) => {
+        p.breakdown.forEach(item => {
+            const rowMap = item.type === 'INCOME' ? inflowRowsMap : outflowRowsMap
+            if (!rowMap[item.name]) {
+                rowMap[item.name] = { 
+                    id: item.id || "", 
+                    reconciliationType: 'RECURRING_FLOW',
+                    values: new Array(months).fill(0) 
+                }
             }
-
-            if (isDue) {
-                const map = flow.type === "INCOME" ? inflowsMap : outflowsMap
-                const row = map.get(flow.name)
-                if (row) row[arrayIndex] += amt
-
-                if (flow.type === "INCOME") monthlyIncome += amt
-                else monthlyExpense += amt
+            
+            const plannedAmount = item.amount.toNumber()
+            
+            // Reconciliation Logic for the Current Month (Index 0)
+            if (i === 0 && item.id) {
+                const actual = currentTransactions
+                    .filter(tx => (tx as any).recurringFlowId === item.id)
+                    .reduce((sum, tx) => sum + Number(tx.amount), 0)
+                
+                rowMap[item.name].values[i] = {
+                    planned: plannedAmount,
+                    actual: actual,
+                    remaining: plannedAmount - actual
+                }
+            } else {
+                rowMap[item.name].values[i] = plannedAmount
             }
+        })
+    })
+
+    const inflowRows: CashFlowRow[] = Object.entries(inflowRowsMap).map(([name, data]) => ({ 
+        id: data.id, 
+        name, 
+        reconciliationType: data.reconciliationType,
+        values: data.values 
+    }))
+    const outflowRows: CashFlowRow[] = Object.entries(outflowRowsMap).map(([name, data]) => ({ 
+        id: data.id, 
+        name, 
+        reconciliationType: data.reconciliationType,
+        values: data.values 
+    }))
+
+    // 5. Hardened Summary Recalculation (Binary Priority Logic)
+    // For index 0 (current month), we substitute Planned with Actual if realized > 0.
+    let hardenedTotalIncome = new Decimal(0)
+    let hardenedTotalExpense = new Decimal(0)
+
+    inflowRows.forEach(row => {
+        const val = row.values[0]
+        if (typeof val === 'object' && val !== null) {
+            // Priority: Actual > Planned
+            hardenedTotalIncome = hardenedTotalIncome.plus(val.actual > 0 ? val.actual : val.planned)
+        } else {
+            hardenedTotalIncome = hardenedTotalIncome.plus(val as number)
         }
+    })
 
-        // Process Budget Limits (Always Monthly for now)
-        for (const limit of budgetLimits) {
-            const amt = Number(limit.amount)
-            const row = outflowsMap.get(limit.category.name)
-            if (row) row[arrayIndex] += amt
-            monthlyExpense += amt
+    outflowRows.forEach(row => {
+        const val = row.values[0]
+        if (typeof val === 'object' && val !== null) {
+            hardenedTotalExpense = hardenedTotalExpense.plus(val.actual > 0 ? val.actual : val.planned)
+        } else {
+            hardenedTotalExpense = hardenedTotalExpense.plus(val as number)
         }
+    })
 
-        // Update Summary
-        summary.totalIncome[arrayIndex] = monthlyIncome
-        summary.totalExpense[arrayIndex] = monthlyExpense
-        summary.netFlow[arrayIndex] = monthlyIncome - monthlyExpense
-
-        runningBalance += (monthlyIncome - monthlyExpense)
-        summary.endingBalance[arrayIndex] = runningBalance
+    // Update Summary index 0 with Forensic Reality
+    summary.totalIncome[0] = hardenedTotalIncome.toNumber()
+    summary.totalExpense[0] = hardenedTotalExpense.toNumber()
+    summary.netFlow[0] = hardenedTotalIncome.minus(hardenedTotalExpense).toNumber()
+    
+    // Note: endingBalance[0] is already derived from startingBalance + summary components 
+    // but summary.netFlow was updated, so we need to refresh endingBalance chain.
+    let runningBalance = new Decimal(points[0].balance.minus(points[0].inflow).plus(points[0].outflow)) // Back to start of month
+    for (let i = 0; i < months; i++) {
+        const net = summary.netFlow[i]
+        runningBalance = runningBalance.plus(net)
+        summary.endingBalance[i] = runningBalance.toNumber()
     }
 
-    // 4. Transform Maps to Arrays
-    const inflows: CashFlowRow[] = Array.from(inflowsMap.entries()).map(([name, values]) => ({ name, values }))
-    const outflows: CashFlowRow[] = Array.from(outflowsMap.entries()).map(([name, values]) => ({ name, values }))
+    // 6. Sovereignty Layout (Categorical Grouping)
+    const inflows: CashFlowRow[] = [
+        { name: "Σ Total Inflow", values: summary.totalIncome },
+        ...inflowRows
+    ]
+    
+    const outflows: CashFlowRow[] = [
+        { name: "Σ Total Expenses", values: summary.totalExpense },
+        ...outflowRows
+    ]
 
     return { headers, inflows, outflows, summary }
 }

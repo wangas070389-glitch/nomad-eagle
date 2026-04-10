@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { authOptions } from "@/lib/auth"
 import { getAccounts } from "@/server/actions/accounts"
 import { getCategories, getTransactions, seedCategories } from "@/server/actions/transactions"
+import { getPlannerCategories } from "@/server/actions/categories"
 import { getPortfolioSummary } from "@/server/actions/investments"
 import { getServerSession } from "next-auth"
 import { redirect } from "next/navigation"
@@ -29,6 +30,7 @@ import {
 } from "@/components/ui/dialog"
 import { ReportGenerator } from "@/components/dashboard/report-generator"
 import { SemanticSearch } from "@/components/SemanticSearch"
+import { LedgerIntegrityPanel } from "@/components/ledger/integrity-panel"
 
 export default async function DashboardPage() {
     const session = await getServerSession(authOptions)
@@ -51,6 +53,7 @@ export default async function DashboardPage() {
     const [
         accounts,
         categories,
+        plannerCategories,
         transactions,
         portfolio,
         householdMembers,
@@ -58,6 +61,7 @@ export default async function DashboardPage() {
     ] = await Promise.all([
         getAccounts(),
         getCategories(),
+        getPlannerCategories(),
         getTransactions(1, 5),
         getPortfolioSummary(),
         getHouseholdMembers(),
@@ -84,7 +88,7 @@ export default async function DashboardPage() {
     const cashBalance = accounts.reduce((sum: number, acc) => sum + Number(acc.balance), 0)
 
     return (
-        <div id="dashboard-content" className="space-y-6 min-h-screen bg-slate-50/50 p-6 -m-6">
+        <div id="dashboard-content" className="space-y-6 min-h-screen bg-slate-50 dark:bg-slate-950 p-6 -m-6">
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
@@ -108,6 +112,7 @@ export default async function DashboardPage() {
                     <AddTransactionDialog
                         accounts={accountOptions}
                         categories={categories}
+                        plannerCategories={plannerCategories}
                         members={householdMembers}
                         currentUserId={currentUserId}
                     />
@@ -133,13 +138,13 @@ export default async function DashboardPage() {
             <SemanticSearch />
 
             <div className="grid gap-4 md:grid-cols-3">
-                <Card>
+                <Card className="glass-card shadow-lg">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Household Cash</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">
-                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cashBalance)}
+                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'MXN' }).format(cashBalance)}
                         </div>
                         <p className="text-xs text-muted-foreground">
                             Combined liquidity of {householdMembers.map(m => m.name || m.id).join(" & ")}
@@ -147,7 +152,7 @@ export default async function DashboardPage() {
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="glass-card shadow-lg">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Investments</CardTitle>
                     </CardHeader>
@@ -204,6 +209,7 @@ export default async function DashboardPage() {
                 </div>
 
                 <div className="w-full xl:col-span-4 space-y-6">
+                    <LedgerIntegrityPanel />
                     <PortfolioSummary summary={portfolio} accounts={accounts} />
                     <BudgetProgress />
                 </div>

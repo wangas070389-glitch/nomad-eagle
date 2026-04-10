@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { Frequency } from "@prisma/client"
 import { getServerSession } from "next-auth"
-import { revalidatePath, revalidateTag } from "next/cache"
+import { revalidatePath } from "next/cache"
 
 export async function addRecurringFlow(formData: FormData) {
     const session = await getServerSession(authOptions)
@@ -15,6 +15,9 @@ export async function addRecurringFlow(formData: FormData) {
     const type = formData.get("type") as "INCOME" | "EXPENSE"
     const frequency = formData.get("frequency") as Frequency
     const startDate = new Date(formData.get("startDate") as string)
+    const bucket = (formData.get("bucket") as any) || "VARIABLE_ALLOCATION"
+    const tagsRaw = formData.get("tags") as string
+    const tags = tagsRaw ? tagsRaw.split(",").map(t => t.trim()).filter(Boolean) : []
 
     if (!name || !amount || !type || !frequency) {
         return { error: "Missing required fields" }
@@ -28,15 +31,17 @@ export async function addRecurringFlow(formData: FormData) {
                 type,
                 frequency,
                 startDate,
-                householdId: session.user.householdId
-            }
+                householdId: session.user.householdId,
+                bucket,
+                tags
+            } as any
         })
 
-        // revalidateTag(`forecast-household-${session.user.householdId}`)
         revalidatePath("/plan")
         revalidatePath("/")
         return { success: true }
     } catch (e) {
+        console.error("Failed to add flow:", e)
         return { error: "Failed to create flow" }
     }
 }
@@ -51,12 +56,14 @@ export async function updateRecurringFlow(formData: FormData) {
     const type = formData.get("type") as "INCOME" | "EXPENSE"
     const frequency = formData.get("frequency") as Frequency
     const startDate = new Date(formData.get("startDate") as string)
+    const bucket = (formData.get("bucket") as any) || "VARIABLE_ALLOCATION"
+    const tagsRaw = formData.get("tags") as string
+    const tags = tagsRaw ? tagsRaw.split(",").map(t => t.trim()).filter(Boolean) : []
 
     if (!id || !name || !amount || !type || !frequency) {
         return { error: "Missing required fields" }
     }
 
-    // Verify ownership
     const existing = await prisma.recurringFlow.findUnique({ where: { id } })
     if (!existing || existing.householdId !== session.user.householdId) {
         return { error: "Unauthorized" }
@@ -70,15 +77,17 @@ export async function updateRecurringFlow(formData: FormData) {
                 amount,
                 type,
                 frequency,
-                startDate
-            }
+                startDate,
+                bucket,
+                tags
+            } as any
         })
 
-        // revalidateTag(`forecast-household-${session.user.householdId}`)
         revalidatePath("/plan")
         revalidatePath("/")
         return { success: true }
     } catch (e) {
+        console.error("Failed to update flow:", e)
         return { error: "Failed to update flow" }
     }
 }
@@ -96,7 +105,6 @@ export async function deleteRecurringFlow(id: string) {
         where: { id }
     })
 
-    // revalidateTag(`forecast-household-${session.user.householdId}`)
     revalidatePath("/plan")
     revalidatePath("/")
 }
@@ -112,8 +120,6 @@ export async function setBudgetLimit(formData: FormData) {
 
     try {
         if (amount <= 0) {
-            // Remove limit if 0 or negative
-            // Make sure to handle "not found" gracefully or use deleteMany
             await prisma.budgetLimit.deleteMany({
                 where: {
                     categoryId,
@@ -125,7 +131,7 @@ export async function setBudgetLimit(formData: FormData) {
                 where: {
                     categoryId_period: {
                         categoryId,
-                        period: "MONTHLY" // Defaulting to monthly for now
+                        period: "MONTHLY"
                     }
                 },
                 update: { amount },
@@ -138,7 +144,6 @@ export async function setBudgetLimit(formData: FormData) {
             })
         }
 
-        // revalidateTag(`forecast-household-${session.user.householdId}`)
         revalidatePath("/plan")
         revalidatePath("/")
         return { success: true }
@@ -156,7 +161,6 @@ export async function toggleFlowActive(id: string, isActive: boolean) {
             where: { id },
             data: { isActive }
         })
-        // revalidateTag(`forecast-household-${session.user.householdId}`)
         revalidatePath("/plan")
         revalidatePath("/")
         return { success: true }
@@ -179,8 +183,8 @@ export async function getPlanningData() {
         prisma.category.findMany({
             where: {
                 OR: [
-                    { householdId: null }, // System
-                    { householdId: session.user.householdId } // Custom
+                    { householdId: null },
+                    { householdId: session.user.householdId }
                 ],
                 isArchived: false
             },
