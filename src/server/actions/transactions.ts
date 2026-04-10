@@ -40,7 +40,6 @@ export async function reconcileManualTransaction(input: ManualReconciliationInpu
             userId: session.user.id,
             accountId: input.accountId,
             // The Deterministic Handshake
-            budgetLimitId: input.type === 'BUDGET_LIMIT' ? input.plannedItemId : undefined,
             recurringFlowId: input.type === 'RECURRING_FLOW' ? input.plannedItemId : undefined,
         })
 
@@ -121,7 +120,6 @@ export async function createTransaction(prevState: any, input: FormData | any) {
     }
 
     const recurringFlowId = actualData instanceof FormData ? (actualData.get("recurringFlowId") as string) : (actualData as any).recurringFlowId
-    const budgetLimitId = actualData instanceof FormData ? (actualData.get("budgetLimitId") as string) : (actualData as any).budgetLimitId
     const finalCategoryId = actualData instanceof FormData ? (actualData.get("categoryId") as string) : (actualData as any).categoryId
 
     try {
@@ -135,8 +133,7 @@ export async function createTransaction(prevState: any, input: FormData | any) {
             userId: session.user.id,
             accountId,
             categoryId: finalCategoryId || undefined,
-            recurringFlowId: recurringFlowId || undefined,
-            budgetLimitId: budgetLimitId || undefined
+            recurringFlowId: recurringFlowId || undefined
         })
 
         revalidatePath("/")

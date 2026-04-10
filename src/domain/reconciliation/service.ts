@@ -54,7 +54,6 @@ export class ReconciliationDomainService {
             where: {
                 householdId: params.householdId,
                 OR: [
-                    { budgetLimitId: params.plannedItemId },
                     { recurringFlowId: params.plannedItemId }
                 ],
                 date: {

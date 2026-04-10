@@ -213,7 +213,6 @@ export function AddTransactionDialog({
                                 <Label className="text-xs text-muted-foreground font-medium">Category</Label>
                                 <input type="hidden" name="categoryId" value={selectedCategory} />
                                 <input type="hidden" name="recurringFlowId" value={selectedPlannerFlow} />
-                                <input type="hidden" name="budgetLimitId" value="" /> {/* Placeholder for future expansion */}
                                 <CategorySelect
                                     categories={[
                                         ...categories,

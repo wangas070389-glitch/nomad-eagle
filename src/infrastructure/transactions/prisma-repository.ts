@@ -18,8 +18,6 @@ export class PrismaTransactionRepository implements TransactionRepository {
         spentByUserId: command.userId,
         // @ts-ignore
         recurringFlowId: command.recurringFlowId || null,
-        // @ts-ignore
-        budgetLimitId: command.budgetLimitId || null,
         currency: "MXN" // Defaulting for simple decoupling demonstration
       }
     })
@@ -42,8 +40,7 @@ export class PrismaTransactionRepository implements TransactionRepository {
       type: tx.type as any,
       accountId: tx.accountId,
       householdId: tx.householdId,
-      recurringFlowId: (tx as any).recurringFlowId,
-      budgetLimitId: (tx as any).budgetLimitId
+      recurringFlowId: (tx as any).recurringFlowId
     }
   }
 }

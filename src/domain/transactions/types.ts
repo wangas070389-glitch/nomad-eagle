@@ -14,7 +14,6 @@ export interface CreateTransactionCommand {
   
   // Relational Pulse: Strategic Handshake
   recurringFlowId?: string
-  budgetLimitId?: string
   
   // For Transfers
   fromAccountId?: string
@@ -31,8 +30,7 @@ export interface TransactionRepository {
     type: TransactionType,
     accountId: string | null,
     householdId: string | null,
-    recurringFlowId: string | null,
-    budgetLimitId: string | null
+    recurringFlowId: string | null
   } | null>
 }
 

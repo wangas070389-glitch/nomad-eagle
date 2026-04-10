@@ -37,7 +37,6 @@ export async function updateTransaction(id: string, prevState: ActionState, form
     const accountId = formData.get("accountId") as string
     const spentByUserId = formData.get("spentByUserId") as string || session.user.id
     const recurringFlowId = formData.get("recurringFlowId") as string
-    const budgetLimitId = formData.get("budgetLimitId") as string
 
     try {
         const transactionId = await container.transactionService.update(id, {
@@ -49,8 +48,7 @@ export async function updateTransaction(id: string, prevState: ActionState, form
             categoryId,
             householdId: session.user.householdId,
             userId: spentByUserId,
-            recurringFlowId: recurringFlowId || undefined,
-            budgetLimitId: budgetLimitId || undefined
+            recurringFlowId: recurringFlowId || undefined
         })
 
         revalidatePath("/")
