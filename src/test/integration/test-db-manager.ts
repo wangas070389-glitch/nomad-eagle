@@ -15,7 +15,7 @@ export class TestDbManager {
       .withPassword('test_pass')
       .start()
 
-    const url = this.container.getConnectionString()
+    const url = this.container.getConnectionUri()
     process.env.DATABASE_URL = url
 
     // Run migrations on the test database
