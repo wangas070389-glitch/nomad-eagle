@@ -22,10 +22,11 @@ import {
 import { addRecurringFlow } from "@/server/actions/planning"
 import { useState } from "react"
 import { Plus, Link2 } from "lucide-react"
+import { Category, SafeBudgetLimit } from "@/lib/types"
 
 interface AddFlowDialogProps {
-    categories: any[]
-    limits: any[]
+    categories: Category[]
+    limits: SafeBudgetLimit[]
 }
 
 export function AddFlowDialog({ categories, limits }: AddFlowDialogProps) {
@@ -70,7 +71,7 @@ export function AddFlowDialog({ categories, limits }: AddFlowDialogProps) {
 
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="type" className="text-right">Flow Type</Label>
-                            <Select name="type" required value={type} onValueChange={(v: any) => setType(v)}>
+                            <Select name="type" required value={type} onValueChange={(v: "INCOME" | "EXPENSE") => setType(v)}>
                                 <SelectTrigger className="col-span-3">
                                     <SelectValue placeholder="Select type" />
                                 </SelectTrigger>
