@@ -109,13 +109,18 @@ export async function updateInvestment(
     }
 ): Promise<ActionState> {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.id) return { error: "Not authenticated" }
+    if (!session?.user?.id || !session.user.householdId) return { error: "Not authenticated" }
 
     try {
-        await container.investmentService.update(poolId, {
-            quantity: new Decimal(data.quantity),
-            costBasis: new Decimal(data.costBasis)
-        })
+        await container.investmentService.update(
+            poolId,
+            {
+                quantity: new Decimal(data.quantity),
+                costBasis: new Decimal(data.costBasis)
+            },
+            session.user.householdId,
+            session.user.id
+        )
 
         revalidatePath("/")
         return { success: true }
@@ -127,10 +132,14 @@ export async function updateInvestment(
 
 export async function deleteInvestment(id: string) {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.id) return { error: "Not authenticated" }
+    if (!session?.user?.id || !session.user.householdId) return { error: "Not authenticated" }
 
     try {
-        await container.investmentService.delete(id)
+        await container.investmentService.delete(
+            id,
+            session.user.householdId,
+            session.user.id
+        )
         revalidatePath("/")
         return { success: true }
     } catch (e) {

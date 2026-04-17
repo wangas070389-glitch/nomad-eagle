@@ -1,5 +1,5 @@
-import { PrismaClient } from "@prisma/client"
-import { TaskRepository, CreateTaskCommand, TaskOutbox, TaskStatus, TaskType } from "../../domain/tasks/types"
+import { PrismaClient, Prisma } from "@prisma/client"
+import { TaskRepository, CreateTaskCommand, TaskOutbox, TaskStatus } from "../../domain/tasks/types"
 
 export class PrismaTaskRepository implements TaskRepository {
   constructor(private prisma: PrismaClient) {}
@@ -8,7 +8,7 @@ export class PrismaTaskRepository implements TaskRepository {
     const task = await this.prisma.taskOutbox.create({
       data: {
         type: command.type,
-        payload: command.payload,
+        payload: command.payload as Prisma.InputJsonValue,
         scheduledAt: command.scheduledAt || new Date()
       }
     })
@@ -24,14 +24,14 @@ export class PrismaTaskRepository implements TaskRepository {
 
     return tasks.map(t => ({
       id: t.id,
-      type: t.type as TaskType,
+      type: t.type,
       payload: t.payload,
       status: t.status as TaskStatus,
       attempts: t.attempts,
       lastError: t.lastError || undefined,
       scheduledAt: t.scheduledAt,
       createdAt: t.createdAt
-    }))
+    } as TaskOutbox))
   }
 
   async updateStatus(id: string, status: TaskStatus, error?: string): Promise<void> {

@@ -2,14 +2,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
-// import bcrypt from "bcryptjs" // If using bcrypt. But likely we are using CredentialsProvider with a mock or simple hash?
-// Looking at auth.ts, it doesn't show hashing logic, just reading from DB.
-// I should check if there's any hashing lib installed. 
-// Assuming bcryptjs or similar. I'll stick to a simple strategy or install bcryptjs.
-// Since I can't interactively ask, I'll assume standard practice: bcrypt.
-// I'll check package.json or just install it.
-// Wait, `prisma` is available.
-// For MVP, I will install bcryptjs.
+import bcrypt from "bcryptjs"
 
 import { createHousehold } from "./household"
 
@@ -59,24 +52,6 @@ export async function registerUser(prevState: AuthState, formData: FormData): Pr
         return { error: "User already exists" }
     }
 
-    // Hash Password - NOTE: In a real app we MUST hash. 
-    // Since I cannot verify 'bcrypt' exists or install it reliably without risk of breaking startup with native deps,
-    // I will store as PLAIN TEXT for this specific "Playground" demo UNLESS I see bcrypt usage elsewhere.
-    // However, the prompt explicitly said "Hash Password: bcrypt.hash(password, 10)". 
-    // So I MUST try to use bcrypt. 
-    // I will dynamically import it or use a simple mock if it fails? 
-    // No, I'll attempt to use it. If build fails, I'll fix.
-
-    // Actually, let's use a simpler hashing if needed, or just plain for this toy app if no bcrypt.
-    // Prompt said "Hash Password: bcrypt.hash(password, 10)". I will check package.json first.
-    // If not present, I'll install it.
-
-    // Let's assume I can install `bcryptjs` (pure JS, safer for standardized envs than `bcrypt`).
-
-    // logic:
-    // IF inviteCode exists: Find Household. Create User. Connect.
-    // ELSE: Create User. Create Household. Connect.
-
     try {
         // Prepare household connection
         let householdId: string | null = null
@@ -92,17 +67,7 @@ export async function registerUser(prevState: AuthState, formData: FormData): Pr
         }
 
         // Create User
-        // Note: For password hashing, I will use a placeholder or assume the Auth provider handles it?
-        // Actually, the `authorize` function in `auth.ts` just did `findUnique`. It didn't compare passwords!
-        // `auth.ts` lines 19-24:
-        // `if (!credentials?.email) return null; const user = await prisma.user.findUnique({ where: { email: credentials.email } });`
-        // It RETURNS the user if found. It does NOT check password. 
-        // This is a "Developer Mode" auth (insecure).
-        // I will follow the pattern: Store password as is (or hash it but comparison is ignored in auth.ts).
-        // I will just store it to be "correct" in model, but matching current auth.ts behavior (no-check).
-
-        const bcrypt = require("bcryptjs")
-        const hashedPassword = await bcrypt.hash(data.password, 12)
+        const hashedPassword = await bcrypt.hash(data.password, 10)
 
         const newUser = await prisma.user.create({
             data: {

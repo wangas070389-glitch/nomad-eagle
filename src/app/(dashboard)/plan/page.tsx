@@ -7,7 +7,6 @@ import { CashFlowTable } from "@/components/planning/cash-flow-table"
 import { CashFlowChart } from "@/components/planning/cash-flow-chart"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { TrendingUp, TrendingDown, Wallet } from "lucide-react"
 import { FlowRow } from "@/components/planning/flow-row"
 import { generateSurplusProjection } from "@/server/core/wealth-recommender"
 import { WealthRecommendationCard } from "@/components/planning/wealth-recommender-card"
@@ -83,7 +82,7 @@ export default async function PlanningPage() {
                     <CardContent className="space-y-3">
                         {incomeFlows.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No income sources.</p>}
                         {incomeFlows.map(flow => (
-                            <FlowRow key={flow.id} flow={flow} categories={categories} limits={limits} />
+                            <FlowRow key={flow.id} flow={flow} />
                         ))}
                     </CardContent>
                 </Card>
@@ -100,7 +99,7 @@ export default async function PlanningPage() {
                     <CardContent className="space-y-3">
                         {expenseFlows.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No fixed expenses.</p>}
                         {expenseFlows.map(flow => (
-                            <FlowRow key={flow.id} flow={flow} categories={categories} limits={limits} />
+                            <FlowRow key={flow.id} flow={flow} />
                         ))}
                     </CardContent>
                 </Card>

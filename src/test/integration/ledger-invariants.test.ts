@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import { TestDbManager } from './test-db-manager'
 import { PrismaLedgerRepository } from '../../infrastructure/ledger/prisma-repository'
