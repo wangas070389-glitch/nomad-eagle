@@ -1,7 +1,15 @@
 import { NextResponse } from "next/server"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
 export async function GET() {
+    const session = await getServerSession(authOptions)
+
+    if (!session || session.user?.role !== "ADMIN") {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     const report: any = {
         checks: [],
         status: "PASS"
@@ -49,10 +57,14 @@ export async function GET() {
         const transactions = await prisma.transaction.findMany({ take: 5 })
         log("Transaction IO", true, `Fetched ${transactions.length} txs`)
 
-    } catch (e: any) {
+    } catch (e: unknown) {
         report.status = "CRITICAL_FAIL"
-        report.error = e.message
-        report.stack = e.stack
+        if (e instanceof Error) {
+            report.error = e.message
+            report.stack = e.stack
+        } else {
+            report.error = "An unknown error occurred"
+        }
         console.error(e)
     }
 
