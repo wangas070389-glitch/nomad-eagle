@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export interface DiagnosticCheck {
@@ -15,6 +17,12 @@ export interface DiagnosticReport {
 }
 
 export async function GET() {
+    const session = await getServerSession(authOptions);
+
+    if (!session || session.user?.role !== "ADMIN") {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const report: DiagnosticReport = {
         checks: [],
         status: "PASS"
@@ -70,7 +78,7 @@ export async function GET() {
         } else {
             // Priority: Forensic Accuracy. Stringify the caught object to 
             // identify the "unknown unknown" failure mode.
-            report.error = String(e);
+            report.error = `Diagnostic failure: ${typeof e === 'object' && e !== null ? JSON.stringify(e) : String(e)}`;
         }
         console.error(e);
     }

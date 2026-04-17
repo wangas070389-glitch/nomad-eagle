@@ -23,15 +23,13 @@ import { updateRecurringFlow } from "@/server/actions/planning"
 import { useState } from "react"
 import { Pencil, Link2 } from "lucide-react"
 
-import { SafeRecurringFlow, Category, SafeBudgetLimit } from "@/lib/types"
+import { SafeRecurringFlow } from "@/lib/types"
 
 interface EditFlowDialogProps {
     flow: SafeRecurringFlow
-    categories: Category[]
-    limits: SafeBudgetLimit[]
 }
 
-export function EditFlowDialog({ flow, categories, limits }: EditFlowDialogProps) {
+export function EditFlowDialog({ flow }: EditFlowDialogProps) {
     const [open, setOpen] = useState(false)
     const [type, setType] = useState<"INCOME" | "EXPENSE">(flow.type as "INCOME" | "EXPENSE")
 
