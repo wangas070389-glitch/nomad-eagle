@@ -12,7 +12,7 @@
     "codex": "node scripts/generate-codex.js"
   },
   "dependencies": {
-    "@prisma/client": "5.10.0",
+    "@prisma/client": "^5.10.0",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -67,7 +67,7 @@
     "eslint-config-next": "16.1.4",
     "jsdom": "^29.0.1",
     "playwright": "^1.59.1",
-    "prisma": "5.10.0",
+    "prisma": "^5.10.0",
     "tailwindcss": "^4",
     "testcontainers": "^11.13.0",
     "tsx": "^4.21.0",

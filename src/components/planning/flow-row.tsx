@@ -2,24 +2,18 @@
 
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
-import { Trash2, TrendingUp, TrendingDown, Tag, Anchor } from "lucide-react"
+import { Trash2, TrendingUp, TrendingDown, Tag } from "lucide-react"
 import { EditFlowDialog } from "@/components/planning/edit-flow-dialog"
 import { deleteRecurringFlow, toggleFlowActive } from "@/server/actions/planning"
 import { useTransition, useOptimistic } from "react"
-import { useRouter } from "next/navigation"
-
 import { SafeRecurringFlow } from "@/lib/types"
 
 interface FlowRowProps {
     flow: SafeRecurringFlow
-    categories: any[]
-    limits: any[]
 }
 
-export function FlowRow({ flow, categories, limits }: FlowRowProps) {
+export function FlowRow({ flow }: FlowRowProps) {
     const [isPending, startTransition] = useTransition()
-    const router = useRouter()
-
     const [optimisticActive, setOptimisticActive] = useOptimistic(
         flow.isActive,
         (state: boolean, newChecked: boolean) => newChecked
@@ -33,8 +27,7 @@ export function FlowRow({ flow, categories, limits }: FlowRowProps) {
     }
 
     const isActive = optimisticActive
-    const category = categories.find(c => c.id === (flow as any).categoryId)
-    const bucket = (flow as any).bucket || "VARIABLE_ALLOCATION"
+    const bucket = flow.bucket || "VARIABLE_ALLOCATION"
     const bucketLabels: Record<string, string> = {
         CAPITAL_INFLOW: "Inflow",
         FIXED_OBLIGATION: "Fixed",
@@ -69,7 +62,7 @@ export function FlowRow({ flow, categories, limits }: FlowRowProps) {
                     {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(Number(flow.amount))}
                 </span>
                 <div className="flex items-center border-l pl-2 border-slate-100">
-                    <EditFlowDialog flow={flow} categories={categories} limits={limits} />
+                    <EditFlowDialog flow={flow} />
                     <form action={deleteRecurringFlow.bind(null, flow.id)}>
                         <Button className="h-8 w-8 text-muted-foreground hover:text-destructive bg-transparent hover:bg-slate-50 shadow-none p-2 opacity-50 hover:opacity-100">
                             <Trash2 className="h-4 w-4" />

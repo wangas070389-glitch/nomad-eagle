@@ -27,13 +27,11 @@ import { SafeRecurringFlow } from "@/lib/types"
 
 interface EditFlowDialogProps {
     flow: SafeRecurringFlow
-    categories: any[]
-    limits: any[]
 }
 
-export function EditFlowDialog({ flow, categories, limits }: EditFlowDialogProps) {
+export function EditFlowDialog({ flow }: EditFlowDialogProps) {
     const [open, setOpen] = useState(false)
-    const [type, setType] = useState<"INCOME" | "EXPENSE">(flow.type as any)
+    const [type, setType] = useState<"INCOME" | "EXPENSE">(flow.type as "INCOME" | "EXPENSE")
 
     async function handleSubmit(formData: FormData) {
         await updateRecurringFlow(formData)
@@ -71,7 +69,7 @@ export function EditFlowDialog({ flow, categories, limits }: EditFlowDialogProps
 
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="type" className="text-right">Flow Type</Label>
-                            <Select name="type" required value={type} onValueChange={(v: any) => setType(v)}>
+                            <Select name="type" required value={type} onValueChange={(v: "INCOME" | "EXPENSE") => setType(v)}>
                                 <SelectTrigger className="col-span-3">
                                     <SelectValue placeholder="Select type" />
                                 </SelectTrigger>
@@ -84,7 +82,7 @@ export function EditFlowDialog({ flow, categories, limits }: EditFlowDialogProps
 
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="bucket" className="text-right text-indigo-600 font-bold">Strategic Bucket</Label>
-                            <Select name="bucket" required defaultValue={(flow as any).bucket || (type === "INCOME" ? "CAPITAL_INFLOW" : "FIXED_OBLIGATION")}>
+                            <Select name="bucket" required defaultValue={flow.bucket || (type === "INCOME" ? "CAPITAL_INFLOW" : "FIXED_OBLIGATION")}>
                                 <SelectTrigger className="col-span-3 border-indigo-200 bg-indigo-50/10">
                                     <SelectValue placeholder="Select decision bucket" />
                                 </SelectTrigger>
@@ -103,7 +101,7 @@ export function EditFlowDialog({ flow, categories, limits }: EditFlowDialogProps
                                 id="tags"
                                 name="tags"
                                 placeholder="e.g. Lego, AWS, Rent, Hobby"
-                                defaultValue={(flow as any).tags?.join(", ") || ""}
+                                defaultValue={flow.tags?.join(", ") || ""}
                                 className="col-span-3 border-dashed"
                             />
                         </div>
