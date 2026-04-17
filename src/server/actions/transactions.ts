@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache"
 import { Decimal } from "decimal.js"
 import { container } from "../domain-container"
 import { getCategories } from "./categories"
+import { ActionState } from "@/lib/types"
 
 export { getCategories } // For backward compatibility with dashboard imports
 
@@ -80,7 +81,7 @@ export async function getTransactions(page: number = 1, pageSize: number = 20, s
         account: tx.account ? { ...tx.account, balance: Number(tx.account.balance) } : null,
         category: tx.category ? { ...tx.category } : null, // Ensure category is spread
         spentBy: tx.spentBy ? { ...tx.spentBy } : null,
-        recurringFlow: (tx as any).recurringFlow ? { ...(tx as any).recurringFlow } : null,
+        recurringFlow: tx.recurringFlow ? { ...tx.recurringFlow } : null,
     }))
 }
 
@@ -88,7 +89,18 @@ export async function getTransactions(page: number = 1, pageSize: number = 20, s
  * Legacy Support: Standard Transaction Creation (Non-handshaked)
  * Updated for Next.js 15 'useActionState' compatibility.
  */
-export async function createTransaction(prevState: any, input: FormData | any) {
+
+export interface CreateTransactionInput {
+    amount: string | number;
+    date: string | Date;
+    description: string;
+    categoryId: string;
+    accountId: string;
+    type?: "INCOME" | "EXPENSE";
+    recurringFlowId?: string;
+}
+
+export async function createTransaction(prevState: ActionState, input: FormData | CreateTransactionInput): Promise<ActionState> {
     const session = await getServerSession(authOptions)
     if (!session?.user?.householdId) return { error: "Not authenticated" }
 
@@ -119,8 +131,8 @@ export async function createTransaction(prevState: any, input: FormData | any) {
         type = data.type || 'EXPENSE'
     }
 
-    const recurringFlowId = actualData instanceof FormData ? (actualData.get("recurringFlowId") as string) : (actualData as any).recurringFlowId
-    const finalCategoryId = actualData instanceof FormData ? (actualData.get("categoryId") as string) : (actualData as any).categoryId
+    const recurringFlowId = actualData instanceof FormData ? (actualData.get("recurringFlowId") as string) : actualData.recurringFlowId;
+    const finalCategoryId = actualData instanceof FormData ? (actualData.get("categoryId") as string) : actualData.categoryId;
 
     try {
         // Use Domain Service for Atomic Execution & Ledgering
@@ -128,7 +140,7 @@ export async function createTransaction(prevState: any, input: FormData | any) {
             amount: new Decimal(amount),
             date: new Date(date),
             description,
-            type: type as any,
+            type: type as "INCOME" | "EXPENSE",
             householdId: session.user.householdId,
             userId: session.user.id,
             accountId,
@@ -165,7 +177,7 @@ export async function seedCategories(formData: FormData) {
                 data: { 
                     name: d.name,
                     icon: d.icon,
-                    type: d.type as any, // Cast to any to bypass stale prisma client types
+                    type: d.type as "INCOME" | "EXPENSE", // Cast safely instead of bypassing types entirely
                     householdId: session.user.householdId 
                 }
             })
