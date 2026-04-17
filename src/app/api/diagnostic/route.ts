@@ -3,6 +3,19 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
+interface DiagnosticCheck {
+    name: string;
+    success: boolean;
+    data?: unknown;
+}
+
+interface DiagnosticReport {
+    checks: DiagnosticCheck[];
+    status: "PASS" | "FAIL" | "CRITICAL_FAIL";
+    error?: string;
+    stack?: string;
+}
+
 export async function GET() {
     const session = await getServerSession(authOptions)
 
@@ -10,12 +23,12 @@ export async function GET() {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const report: any = {
+    const report: DiagnosticReport = {
         checks: [],
         status: "PASS"
     }
 
-    function log(name: string, success: boolean, data?: any) {
+    function log(name: string, success: boolean, data?: unknown) {
         report.checks.push({ name, success, data })
         if (!success) report.status = "FAIL"
     }
@@ -63,7 +76,7 @@ export async function GET() {
             report.error = e.message
             report.stack = e.stack
         } else {
-            report.error = "An unknown error occurred"
+            report.error = String(e)
         }
         console.error(e)
     }

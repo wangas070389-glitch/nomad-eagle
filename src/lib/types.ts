@@ -74,8 +74,8 @@ export type InvestmentPositionWithValue = Omit<Prisma.InvestmentPositionGetPaylo
     currency: string
 }
 
+export type BudgetLimit = Prisma.BudgetLimitGetPayload<{}>
 
-
-
-
-
+export type SafeBudgetLimit = Omit<BudgetLimit, 'amount'> & {
+    amount: number
+}
