@@ -1,144 +1,77 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
-import { updateRecurringFlow } from "@/server/actions/planning"
-import { useState } from "react"
-import { Pencil, Link2 } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
+import { Trash2, TrendingUp, TrendingDown, Tag } from "lucide-react"
+import { EditFlowDialog } from "@/components/planning/edit-flow-dialog"
+import { deleteRecurringFlow, toggleFlowActive } from "@/server/actions/planning"
+import { useTransition, useOptimistic } from "react"
 
 import { SafeRecurringFlow } from "@/lib/types"
 
-interface EditFlowDialogProps {
+interface FlowRowProps {
     flow: SafeRecurringFlow
 }
 
-export function EditFlowDialog({ flow }: EditFlowDialogProps) {
-    const [open, setOpen] = useState(false)
-    const [type, setType] = useState<"INCOME" | "EXPENSE">(flow.type as "INCOME" | "EXPENSE")
+export function FlowRow({ flow }: FlowRowProps) {
+    const [isPending, startTransition] = useTransition()
 
-    async function handleSubmit(formData: FormData) {
-        await updateRecurringFlow(formData)
-        setOpen(false)
+    const [optimisticActive, setOptimisticActive] = useOptimistic(
+        flow.isActive,
+        (state: boolean, newChecked: boolean) => newChecked
+    )
+
+    const handleToggle = (checked: boolean) => {
+        startTransition(async () => {
+            setOptimisticActive(checked)
+            await toggleFlowActive(flow.id, checked)
+        })
+    }
+
+    const isActive = optimisticActive
+    const bucket = flow.bucket || "VARIABLE_ALLOCATION"
+    const bucketLabels: Record<string, string> = {
+        CAPITAL_INFLOW: "Inflow",
+        FIXED_OBLIGATION: "Fixed",
+        VARIABLE_ALLOCATION: "Variable"
     }
 
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                <Button className="h-8 w-8 text-muted-foreground hover:text-primary bg-transparent hover:bg-slate-100 shadow-none p-2 mr-1">
-                    <Pencil className="h-4 w-4" />
-                </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
-                <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                        <Link2 className="h-5 w-5 text-indigo-500" />
-                        Edit Strategic Flow
-                    </DialogTitle>
-                    <DialogDescription>
-                        Update details and relational anchors for this item.
-                    </DialogDescription>
-                </DialogHeader>
-                <form action={handleSubmit}>
-                    <input type="hidden" name="id" value={flow.id} />
-                    <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="name" className="text-right">Name</Label>
-                            <Input id="name" name="name" defaultValue={flow.name} className="col-span-3" required />
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="amount" className="text-right">Amount</Label>
-                            <Input id="amount" name="amount" type="number" step="0.01" defaultValue={Number(flow.amount)} className="col-span-3" required />
-                        </div>
-
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="type" className="text-right">Flow Type</Label>
-                            <Select name="type" required value={type} onValueChange={(v: "INCOME" | "EXPENSE") => setType(v)}>
-                                <SelectTrigger className="col-span-3">
-                                    <SelectValue placeholder="Select type" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="INCOME">Income</SelectItem>
-                                    <SelectItem value="EXPENSE">Expense</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="bucket" className="text-right text-indigo-600 font-bold">Strategic Bucket</Label>
-                            <Select name="bucket" required defaultValue={flow.bucket || (type === "INCOME" ? "CAPITAL_INFLOW" : "FIXED_OBLIGATION")}>
-                                <SelectTrigger className="col-span-3 border-indigo-200 bg-indigo-50/10">
-                                    <SelectValue placeholder="Select decision bucket" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="CAPITAL_INFLOW">Capital Inflow (Forecasting Base)</SelectItem>
-                                    <SelectItem value="FIXED_OBLIGATION">Fixed Obligation (Liability Anchor)</SelectItem>
-                                    <SelectItem value="VARIABLE_ALLOCATION">Variable Allocation (Optimizable Flow)</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        {/* Metadata Tagging (The Decoupled Layer) */}
-                        <div className="grid grid-cols-4 items-center gap-4 border-t pt-4">
-                            <Label htmlFor="tags" className="text-right text-slate-500 italic">Audit Tags</Label>
-                            <Input
-                                id="tags"
-                                name="tags"
-                                placeholder="e.g. Lego, AWS, Rent, Hobby"
-                                defaultValue={flow.tags?.join(", ") || ""}
-                                className="col-span-3 border-dashed"
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-4 items-center gap-4 border-t pt-4 mt-2">
-                            <Label htmlFor="frequency" className="text-right">Frequency</Label>
-                            <Select name="frequency" required defaultValue={flow.frequency}>
-                                <SelectTrigger className="col-span-3">
-                                    <SelectValue placeholder="Select frequency" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="MONTHLY">Monthly</SelectItem>
-                                    <SelectItem value="QUARTERLY">Quarterly</SelectItem>
-                                    <SelectItem value="SEMIANNUAL">Every 6 Months</SelectItem>
-                                    <SelectItem value="ANNUAL">Annually</SelectItem>
-                                    <SelectItem value="ONE_TIME">One Time</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="startDate" className="text-right">Start Date</Label>
-                            <Input
-                                id="startDate"
-                                name="startDate"
-                                type="date"
-                                className="col-span-3"
-                                defaultValue={flow.startDate ? new Date(flow.startDate).toISOString().split('T')[0] : ''}
-                                required
-                            />
-                        </div>
+        <div key={flow.id} className={`flex items-center justify-between p-3 rounded-xl bg-white border shadow-sm hover:shadow-md transition-all ${!isActive ? "opacity-60 grayscale border-slate-200 bg-slate-50" : flow.type === 'INCOME' ? "border-emerald-100" : "border-red-100"}`}>
+            <div className="flex items-center gap-3">
+                <Switch
+                    checked={isActive}
+                    onCheckedChange={handleToggle}
+                    disabled={isPending}
+                    className="data-[state=checked]:bg-indigo-600"
+                />
+                <div className={`p-2 rounded-lg ${flow.type === 'INCOME' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+                    {flow.type === 'INCOME' ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                </div>
+                <div>
+                    <div className={`font-semibold text-sm ${!isActive && "line-through text-slate-500"}`}>{flow.name}</div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                         <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">{flow.frequency.toLowerCase()}</span>
+                         <span className="flex items-center gap-1 text-[10px] bg-indigo-50 px-1.5 py-0.5 rounded text-indigo-600 font-medium border border-indigo-100">
+                             <Tag className="h-2.5 w-2.5" />
+                             {bucketLabels[bucket] || bucket}
+                         </span>
                     </div>
-                    <DialogFooter>
-                        <Button type="submit" className="bg-slate-900">Update strategic flow</Button>
-                    </DialogFooter>
-                </form>
-            </DialogContent>
-        </Dialog>
+                </div>
+            </div>
+            <div className="flex items-center gap-3">
+                <span className={`font-bold text-sm ${!isActive ? "text-slate-400" : flow.type === 'INCOME' ? "text-emerald-700" : "text-red-700"}`}>
+                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(Number(flow.amount))}
+                </span>
+                <div className="flex items-center border-l pl-2 border-slate-100">
+                    <EditFlowDialog flow={flow} />
+                    <form action={deleteRecurringFlow.bind(null, flow.id)}>
+                        <Button className="h-8 w-8 text-muted-foreground hover:text-destructive bg-transparent hover:bg-slate-50 shadow-none p-2 opacity-50 hover:opacity-100">
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </form>
+                </div>
+            </div>
+        </div>
     )
 }

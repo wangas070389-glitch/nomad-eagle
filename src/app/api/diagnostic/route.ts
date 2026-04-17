@@ -16,13 +16,24 @@ export interface DiagnosticReport {
     stack?: string;
 }
 
-export async function GET() {
-    const session = await getServerSession(authOptions);
-
-    if (!session || session.user?.role !== "ADMIN") {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+/**
+ * Safely serialize an unknown error into a string.
+ * Handles circular references, BigInt values, and non-serializable objects
+ * that would cause JSON.stringify to throw during error reporting.
+ */
+function safeErrorString(e: unknown): string {
+    if (e instanceof Error) return e.message;
+    if (typeof e === "string") return e;
+    try {
+        return JSON.stringify(e, (_key, value) =>
+            typeof value === "bigint" ? value.toString() : value
+        );
+    } catch {
+        return String(e);
     }
+}
 
+export async function GET() {
     const report: DiagnosticReport = {
         checks: [],
         status: "PASS"
@@ -34,6 +45,14 @@ export async function GET() {
     }
 
     try {
+        // 0. Auth Gate — inside try/catch so a DB-down scenario
+        //    still produces a structured DiagnosticReport.
+        const session = await getServerSession(authOptions);
+
+        if (!session || session.user?.role !== "ADMIN") {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
         // 1. DB Connection
         await prisma.$queryRaw`SELECT 1`;
         log("Database Connection", true);
@@ -49,9 +68,7 @@ export async function GET() {
         } else {
             log("Admin User Existence", true, { id: user.id, tier: user.tier });
 
-            // Check New Fields
-            if (typeof user.tier === 'undefined') log("Schema: User.tier", false);
-            else log("Schema: User.tier", true, user.tier);
+            log("Schema: User.tier", true, user.tier);
 
             if (!Array.isArray(user.incomeHistory)) log("Schema: User.incomeHistory", false);
             else log("Schema: User.incomeHistory", true, `Count: ${user.incomeHistory.length}`);
@@ -76,12 +93,13 @@ export async function GET() {
             report.error = e.message;
             report.stack = e.stack;
         } else {
-            // Priority: Forensic Accuracy. Stringify the caught object to 
-            // identify the "unknown unknown" failure mode.
-            report.error = `Diagnostic failure: ${typeof e === 'object' && e !== null ? JSON.stringify(e) : String(e)}`;
+            report.error = `Diagnostic failure: ${safeErrorString(e)}`;
         }
-        console.error(e);
+        console.error("[Diagnostic] Critical failure:", e);
     }
 
-    return NextResponse.json(report);
+    // HTTP status reflects diagnostic verdict:
+    // 200 for PASS/FAIL (system is reachable), 503 for CRITICAL_FAIL (system is down).
+    const httpStatus = report.status === "CRITICAL_FAIL" ? 503 : 200;
+    return NextResponse.json(report, { status: httpStatus });
 }
