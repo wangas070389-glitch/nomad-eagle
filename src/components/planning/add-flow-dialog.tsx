@@ -22,14 +22,8 @@ import {
 import { addRecurringFlow } from "@/server/actions/planning"
 import { useState } from "react"
 import { Plus, Link2 } from "lucide-react"
-import { Category, SafeBudgetLimit } from "@/lib/types"
 
-interface AddFlowDialogProps {
-    categories: Category[]
-    limits: SafeBudgetLimit[]
-}
-
-export function AddFlowDialog({ categories, limits }: AddFlowDialogProps) {
+export function AddFlowDialog() {
     const [open, setOpen] = useState(false)
     const [type, setType] = useState<"INCOME" | "EXPENSE">("INCOME")
 
