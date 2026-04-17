@@ -67,11 +67,32 @@ export class InvestmentDomainService {
     return await this.investRepo.save(data)
   }
 
-  async update(id: string, data: Partial<InvestmentPosition>): Promise<void> {
+  async update(
+    id: string,
+    data: Partial<InvestmentPosition>,
+    householdId: string,
+    userId: string
+  ): Promise<void> {
+    const position = await this.investRepo.getById(id)
+    if (!position) throw new Error("Investment position not found.")
+
+    await this.permissionService.ensureHouseholdAccess(householdId, position.householdId)
+    await this.permissionService.ensureOwnership(userId, position.ownerId ?? null)
+
     await this.investRepo.update(id, data)
   }
 
-  async delete(id: string): Promise<void> {
+  async delete(
+    id: string,
+    householdId: string,
+    userId: string
+  ): Promise<void> {
+    const position = await this.investRepo.getById(id)
+    if (!position) throw new Error("Investment position not found.")
+
+    await this.permissionService.ensureHouseholdAccess(householdId, position.householdId)
+    await this.permissionService.ensureOwnership(userId, position.ownerId ?? null)
+
     await this.investRepo.delete(id)
   }
 }
