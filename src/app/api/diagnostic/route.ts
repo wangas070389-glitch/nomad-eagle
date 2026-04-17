@@ -76,7 +76,7 @@ export async function GET() {
             report.error = e.message
             report.stack = e.stack
         } else {
-            report.error = String(e)
+            report.error = `Diagnostic failure: ${typeof e === 'object' && e !== null ? JSON.stringify(e) : String(e)}`
         }
         console.error(e)
     }
