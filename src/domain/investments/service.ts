@@ -35,6 +35,14 @@ export class InvestmentDomainService {
     // 0. Security Invariants
     await this.permissionService.ensureHouseholdAccess(command.householdId, position.householdId)
 
+    if (command.unitsToSell.lte(0)) {
+      throw new Error("Units to sell must be positive.")
+    }
+
+    if (command.salePrice.lt(0)) {
+      throw new Error("Sale price cannot be negative.")
+    }
+
     if (command.unitsToSell.gt(position.quantity)) {
       throw new Error(`Insufficient quantity. Owned: ${position.quantity}, Selling: ${command.unitsToSell}`)
     }
