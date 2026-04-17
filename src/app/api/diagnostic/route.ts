@@ -68,7 +68,7 @@ export async function GET() {
             report.error = e.message
             report.stack = e.stack
         } else {
-            report.error = "An unknown error occurred"
+            report.error = String(e)
         }
         console.error(e)
     }

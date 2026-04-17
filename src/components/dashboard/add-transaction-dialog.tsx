@@ -115,7 +115,7 @@ export function AddTransactionDialog({
                                 <Select
                                     name="type"
                                     value={type}
-                                    onValueChange={(v: any) => setType(v)}
+                                    onValueChange={(v) => setType(v as "INCOME" | "EXPENSE" | "TRANSFER")}
                                     required
                                 >
                                     <SelectTrigger className="h-9">
@@ -219,9 +219,7 @@ export function AddTransactionDialog({
                                         ...(plannerCategories?.map(p => ({
                                             id: p.id,
                                             name: `[Flow] ${p.name}`,
-                                            icon: p.icon,
-                                            type: p.type as any,
-                                            isPlannerItem: true
+                                            icon: p.icon
                                         })) || [])
                                     ]}
                                     value={selectedPlannerFlow || selectedCategory}
