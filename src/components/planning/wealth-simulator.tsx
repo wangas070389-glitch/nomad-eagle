@@ -72,7 +72,7 @@ export function WealthSimulator({ initialNetWorth, initialMonthlyFlow }: WealthS
         setStrategies([...strategies, newStrat])
     }
 
-    const updateStrategy = (id: string, field: keyof Strategy, value: any) => {
+    const updateStrategy = <K extends keyof Strategy>(id: string, field: K, value: Strategy[K]) => {
         setStrategies(strategies.map(s => s.id === id ? { ...s, [field]: value } : s))
     }
 
