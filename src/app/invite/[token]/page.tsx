@@ -65,10 +65,10 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
                             <form action={async () => {
                                 "use server"
                                 const res = await joinTrip(token)
-                                if (res.error) {
+                                if ('error' in res && res.error) {
                                     // Handle error? For now redirect or similar
                                     throw new Error(res.error)
-                                } else if (res.success && res.tripId) {
+                                } else if ('success' in res && res.success && 'tripId' in res && res.tripId) {
                                     redirect(`/trips/${res.tripId}`)
                                 }
                             }}>
