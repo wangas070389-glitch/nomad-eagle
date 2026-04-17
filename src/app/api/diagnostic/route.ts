@@ -1,13 +1,26 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
+interface DiagnosticCheck {
+    name: string;
+    success: boolean;
+    data?: unknown;
+}
+
+interface DiagnosticReport {
+    checks: DiagnosticCheck[];
+    status: "PASS" | "FAIL" | "CRITICAL_FAIL";
+    error?: string;
+    stack?: string;
+}
+
 export async function GET() {
-    const report: any = {
+    const report: DiagnosticReport = {
         checks: [],
         status: "PASS"
     }
 
-    function log(name: string, success: boolean, data?: any) {
+    function log(name: string, success: boolean, data?: unknown) {
         report.checks.push({ name, success, data })
         if (!success) report.status = "FAIL"
     }
@@ -49,10 +62,14 @@ export async function GET() {
         const transactions = await prisma.transaction.findMany({ take: 5 })
         log("Transaction IO", true, `Fetched ${transactions.length} txs`)
 
-    } catch (e: any) {
+    } catch (e: unknown) {
         report.status = "CRITICAL_FAIL"
-        report.error = e.message
-        report.stack = e.stack
+        if (e instanceof Error) {
+            report.error = e.message
+            report.stack = e.stack
+        } else {
+            report.error = `Diagnostic failure: ${typeof e === 'object' && e !== null ? JSON.stringify(e) : String(e)}`
+        }
         console.error(e)
     }
 
