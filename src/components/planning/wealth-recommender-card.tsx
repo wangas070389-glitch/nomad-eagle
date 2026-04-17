@@ -5,13 +5,14 @@ import { Button } from "@/components/ui/button"
 import { ArrowRight, Sparkles } from "lucide-react"
 import Link from "next/link"
 import { AreaChart, Area, ResponsiveContainer } from "recharts"
+import { ProjectionPoint } from "@/server/core/growth-engine"
 
 interface RecommendationProps {
     data: {
         surplus: number;
         projectedTotal: number;
         message: string;
-        chartData: any[];
+        chartData: ProjectionPoint[];
     }
 }
 

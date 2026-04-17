@@ -44,6 +44,12 @@ export type SafeRecurringFlow = Omit<RecurringFlow, 'amount'> & {
 
 export type Category = Prisma.CategoryGetPayload<{}>
 
+export type BudgetLimit = Prisma.BudgetLimitGetPayload<{}>
+
+export type SafeBudgetLimit = Omit<BudgetLimit, 'amount'> & {
+    amount: number
+}
+
 export type SimulationPoint = {
     date: string
     actual: number | null
