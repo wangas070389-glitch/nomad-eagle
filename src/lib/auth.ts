@@ -1,5 +1,6 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { loginRateLimiter } from "@/lib/rate-limit";
 
@@ -47,8 +48,6 @@ export const authOptions: NextAuthOptions = {
                         return null
                     }
 
-                    // Dynamically import bcrypt to avoid build issues if types are missing, though we installed them.
-                    const bcrypt = require("bcryptjs")
                     const isValid = await bcrypt.compare(credentials.password, user.password)
 
                     if (!isValid) {
@@ -67,9 +66,7 @@ export const authOptions: NextAuthOptions = {
 
                     // 1. Create User first (without household)
 
-                    // IMPORT BCRYPT
-                    const bcrypt = require("bcryptjs")
-                    const hashedPassword = await bcrypt.hash(credentials.password, 12)
+                    const hashedPassword = await bcrypt.hash(credentials.password, 10)
 
                     const newUser = await prisma.user.create({
                         data: {
