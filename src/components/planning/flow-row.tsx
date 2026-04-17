@@ -8,12 +8,12 @@ import { deleteRecurringFlow, toggleFlowActive } from "@/server/actions/planning
 import { useTransition, useOptimistic } from "react"
 import { useRouter } from "next/navigation"
 
-import { SafeRecurringFlow } from "@/lib/types"
+import { SafeRecurringFlow, Category, SafeBudgetLimit } from "@/lib/types"
 
 interface FlowRowProps {
     flow: SafeRecurringFlow
-    categories: any[]
-    limits: any[]
+    categories: Category[]
+    limits: SafeBudgetLimit[]
 }
 
 export function FlowRow({ flow, categories, limits }: FlowRowProps) {
@@ -33,8 +33,8 @@ export function FlowRow({ flow, categories, limits }: FlowRowProps) {
     }
 
     const isActive = optimisticActive
-    const category = categories.find(c => c.id === (flow as any).categoryId)
-    const bucket = (flow as any).bucket || "VARIABLE_ALLOCATION"
+    const category = categories.find(c => c.id === flow.categoryId)
+    const bucket = flow.bucket || "VARIABLE_ALLOCATION"
     const bucketLabels: Record<string, string> = {
         CAPITAL_INFLOW: "Inflow",
         FIXED_OBLIGATION: "Fixed",
