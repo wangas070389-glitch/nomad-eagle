@@ -78,7 +78,7 @@ export default async function PlanningPage() {
                             <CardTitle className="text-emerald-900">Income Planner</CardTitle>
                             <CardDescription>Recurring Salary & Bonuses</CardDescription>
                         </div>
-                        <AddFlowDialog categories={categories} limits={limits} />
+                        <AddFlowDialog />
                     </CardHeader>
                     <CardContent className="space-y-3">
                         {incomeFlows.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No income sources.</p>}
@@ -95,7 +95,7 @@ export default async function PlanningPage() {
                             <CardTitle className="text-red-900">Expense Planner</CardTitle>
                             <CardDescription>Fixed Rent, Loans, Insurance</CardDescription>
                         </div>
-                        <AddFlowDialog categories={categories} limits={limits} />
+                        <AddFlowDialog />
                     </CardHeader>
                     <CardContent className="space-y-3">
                         {expenseFlows.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No fixed expenses.</p>}
