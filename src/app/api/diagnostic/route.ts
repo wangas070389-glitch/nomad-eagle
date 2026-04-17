@@ -1,15 +1,15 @@
-import { NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
-import { prisma } from "@/lib/prisma"
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
-interface DiagnosticCheck {
+export interface DiagnosticCheck {
     name: string;
     success: boolean;
     data?: unknown;
 }
 
-interface DiagnosticReport {
+export interface DiagnosticReport {
     checks: DiagnosticCheck[];
     status: "PASS" | "FAIL" | "CRITICAL_FAIL";
     error?: string;
@@ -17,44 +17,44 @@ interface DiagnosticReport {
 }
 
 export async function GET() {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(authOptions);
 
     if (!session || session.user?.role !== "ADMIN") {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const report: DiagnosticReport = {
         checks: [],
         status: "PASS"
-    }
+    };
 
     function log(name: string, success: boolean, data?: unknown) {
-        report.checks.push({ name, success, data })
-        if (!success) report.status = "FAIL"
+        report.checks.push({ name, success, data });
+        if (!success) report.status = "FAIL";
     }
 
     try {
         // 1. DB Connection
-        await prisma.$queryRaw`SELECT 1`
-        log("Database Connection", true)
+        await prisma.$queryRaw`SELECT 1`;
+        log("Database Connection", true);
 
         // 2. User Schema Check
         const user = await prisma.user.findUnique({
             where: { email: "admin@nomad.com" },
             include: { incomeHistory: true }
-        })
+        });
 
         if (!user) {
-            log("Admin User Existence", false, "User not found")
+            log("Admin User Existence", false, "User not found");
         } else {
-            log("Admin User Existence", true, { id: user.id, tier: user.tier })
+            log("Admin User Existence", true, { id: user.id, tier: user.tier });
 
             // Check New Fields
-            if (typeof user.tier === 'undefined') log("Schema: User.tier", false)
-            else log("Schema: User.tier", true, user.tier)
+            if (typeof user.tier === 'undefined') log("Schema: User.tier", false);
+            else log("Schema: User.tier", true, user.tier);
 
-            if (!Array.isArray(user.incomeHistory)) log("Schema: User.incomeHistory", false)
-            else log("Schema: User.incomeHistory", true, `Count: ${user.incomeHistory.length}`)
+            if (!Array.isArray(user.incomeHistory)) log("Schema: User.incomeHistory", false);
+            else log("Schema: User.incomeHistory", true, `Count: ${user.incomeHistory.length}`);
         }
 
         // 3. Household Check
@@ -62,24 +62,26 @@ export async function GET() {
             const household = await prisma.household.findUnique({
                 where: { id: user.householdId },
                 include: { transactions: { take: 1 } }
-            })
-            log("Household Fetch", !!household, household ? { name: household.name } : null)
+            });
+            log("Household Fetch", !!household, household ? { name: household.name } : null);
         }
 
         // 4. Transaction Fetch
-        const transactions = await prisma.transaction.findMany({ take: 5 })
-        log("Transaction IO", true, `Fetched ${transactions.length} txs`)
+        const transactions = await prisma.transaction.findMany({ take: 5 });
+        log("Transaction IO", true, `Fetched ${transactions.length} txs`);
 
     } catch (e: unknown) {
-        report.status = "CRITICAL_FAIL"
+        report.status = "CRITICAL_FAIL";
         if (e instanceof Error) {
-            report.error = e.message
-            report.stack = e.stack
+            report.error = e.message;
+            report.stack = e.stack;
         } else {
-            report.error = `Diagnostic failure: ${typeof e === 'object' && e !== null ? JSON.stringify(e) : String(e)}`
+            // Priority: Forensic Accuracy. Stringify the caught object to 
+            // identify the "unknown unknown" failure mode.
+            report.error = `Diagnostic failure: ${typeof e === 'object' && e !== null ? JSON.stringify(e) : String(e)}`;
         }
-        console.error(e)
+        console.error(e);
     }
 
-    return NextResponse.json(report)
+    return NextResponse.json(report);
 }
