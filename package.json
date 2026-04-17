@@ -9,7 +9,9 @@
     "lint": "eslint",
     "ensure-structure": "node scripts/ensure-structure.js",
     "genesis": "node scripts/genesis.js",
-    "codex": "node scripts/generate-codex.js"
+    "codex": "node scripts/generate-codex.js",
+    "reconcile": "npx tsx scripts/reconcile-balances.ts",
+    "verify-ledger": "npx tsx scripts/verify-ledger.ts"
   },
   "dependencies": {
     "@prisma/client": "5.10.0",
@@ -54,6 +56,7 @@
     "@tailwindcss/postcss": "^4",
     "@tailwindcss/typography": "^0.5.19",
     "@testcontainers/postgresql": "^11.13.0",
+    "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",

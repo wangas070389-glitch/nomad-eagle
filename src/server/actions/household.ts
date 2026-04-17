@@ -70,9 +70,31 @@ export async function createHousehold(prevState: ActionState, formData: FormData
     }
 }
 
+const rateLimits = new Map<string, { attempts: number, lastAttempt: number }>()
+const RATE_LIMIT_WINDOW = 60 * 60 * 1000 // 1 hour
+const MAX_ATTEMPTS = 5
+
 export async function joinHousehold(prevStateOrCode: ActionState | string, maybeFormData?: FormData) {
     const session = await getServerSession(authOptions)
     if (!session?.user?.email) return { error: "Not authenticated" }
+
+    const ip = session.user.id // In a real app use actual IP or reliable identifier, fallback to user ID for MVP rate limiting
+    const now = Date.now()
+    const rateLimit = rateLimits.get(ip)
+
+    if (rateLimit) {
+        if (now - rateLimit.lastAttempt < RATE_LIMIT_WINDOW) {
+            if (rateLimit.attempts >= MAX_ATTEMPTS) {
+                return { error: "Too many attempts. Please try again later." }
+            }
+            rateLimit.attempts++
+            rateLimit.lastAttempt = now
+        } else {
+            rateLimits.set(ip, { attempts: 1, lastAttempt: now })
+        }
+    } else {
+        rateLimits.set(ip, { attempts: 1, lastAttempt: now })
+    }
 
     let code: string
     if (maybeFormData instanceof FormData) {

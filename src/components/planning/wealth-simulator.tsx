@@ -125,7 +125,7 @@ export function WealthSimulator({ initialNetWorth, initialMonthlyFlow }: WealthS
                                 />
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                                 <Tooltip
-                                    formatter={(value: number | undefined) => value ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value) : '$0'}
+                                    formatter={(value: any) => value ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value)) : '$0'}
                                     labelFormatter={(label) => `Year: ${label}`}
                                 />
                                 <ReferenceLine y={fiNumber} label="FI Target" stroke="red" strokeDasharray="3 3" />

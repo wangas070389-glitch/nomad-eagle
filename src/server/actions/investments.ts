@@ -83,8 +83,18 @@ export async function createPosition(prevState: ActionState, formData: FormData)
     const currency = formData.get("currency") as Currency
     const accountId = formData.get("accountId") as string
 
+    // Validate account ownership
+    const account = await prisma.account.findUnique({
+        where: { id: accountId }
+    })
+
+    if (!account || account.householdId !== session.user.householdId) {
+        return { error: "Unauthorized account" }
+    }
+
     try {
         await container.investmentService.create({
+            householdId: session.user.householdId,
             name,
             ticker,
             quantity: new Decimal(quantity),
@@ -109,7 +119,15 @@ export async function updateInvestment(
     }
 ): Promise<ActionState> {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.id) return { error: "Not authenticated" }
+    if (!session?.user?.id || !session.user.householdId) return { error: "Not authenticated" }
+
+    const investment = await prisma.investmentPosition.findUnique({
+        where: { id: poolId }
+    })
+
+    if (!investment || investment.householdId !== session.user.householdId) {
+        return { error: "Unauthorized" }
+    }
 
     try {
         await container.investmentService.update(poolId, {
@@ -127,7 +145,15 @@ export async function updateInvestment(
 
 export async function deleteInvestment(id: string) {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.id) return { error: "Not authenticated" }
+    if (!session?.user?.id || !session.user.householdId) return { error: "Not authenticated" }
+
+    const investment = await prisma.investmentPosition.findUnique({
+        where: { id }
+    })
+
+    if (!investment || investment.householdId !== session.user.householdId) {
+        return { error: "Unauthorized" }
+    }
 
     try {
         await container.investmentService.delete(id)

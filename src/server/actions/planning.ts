@@ -16,6 +16,11 @@ export async function addRecurringFlow(formData: FormData) {
     const frequency = formData.get("frequency") as Frequency
     const startDate = new Date(formData.get("startDate") as string)
     const bucket = (formData.get("bucket") as any) || "VARIABLE_ALLOCATION"
+
+    if (bucket !== "CAPITAL_INFLOW" && bucket !== "FIXED_OBLIGATION" && bucket !== "VARIABLE_ALLOCATION") {
+        return { error: "Invalid bucket. Must be CAPITAL_INFLOW, FIXED_OBLIGATION, or VARIABLE_ALLOCATION" }
+    }
+
     const tagsRaw = formData.get("tags") as string
     const tags = tagsRaw ? tagsRaw.split(",").map(t => t.trim()).filter(Boolean) : []
 
@@ -57,6 +62,11 @@ export async function updateRecurringFlow(formData: FormData) {
     const frequency = formData.get("frequency") as Frequency
     const startDate = new Date(formData.get("startDate") as string)
     const bucket = (formData.get("bucket") as any) || "VARIABLE_ALLOCATION"
+
+    if (bucket !== "CAPITAL_INFLOW" && bucket !== "FIXED_OBLIGATION" && bucket !== "VARIABLE_ALLOCATION") {
+        return { error: "Invalid bucket. Must be CAPITAL_INFLOW, FIXED_OBLIGATION, or VARIABLE_ALLOCATION" }
+    }
+
     const tagsRaw = formData.get("tags") as string
     const tags = tagsRaw ? tagsRaw.split(",").map(t => t.trim()).filter(Boolean) : []
 

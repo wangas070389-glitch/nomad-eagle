@@ -76,7 +76,7 @@ export function CashFlowChart({ initialData, className }: { initialData?: Detail
                                 stroke="#94a3b8"
                             />
                             <Tooltip
-                                formatter={(value: number | undefined) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'MXN' }).format(value || 0)}
+                                formatter={(value: any) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'MXN' }).format(Number(value) || 0)}
                                 labelStyle={{ color: "#1e293b", fontWeight: 600 }}
                                 contentStyle={{ 
                                     borderRadius: '12px', 

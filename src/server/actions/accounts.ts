@@ -82,7 +82,7 @@ export async function updateAccount(
     }
 ) {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.id) return { error: "Not authenticated" }
+    if (!session?.user?.id || !session.user.householdId) return { error: "Not authenticated" }
 
     const account = await prisma.account.findUnique({
         where: { id: accountId }
@@ -139,7 +139,7 @@ export async function updateAccount(
 
 export async function deleteAccount(accountId: string) {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.id) return { error: "Not authenticated" }
+    if (!session?.user?.id || !session.user.householdId) return { error: "Not authenticated" }
 
     const account = await prisma.account.findUnique({
         where: { id: accountId }

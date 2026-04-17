@@ -29,6 +29,16 @@ export async function reconcileManualTransaction(input: ManualReconciliationInpu
 
     const householdId = session.user.householdId
 
+    // Ensure account belongs to household
+    if (input.accountId) {
+        const account = await prisma.account.findUnique({
+            where: { id: input.accountId }
+        })
+        if (!account || account.householdId !== householdId) {
+            return { error: "Unauthorized: Account belongs to another household" }
+        }
+    }
+
     try {
         // Enforce Relational Integrity via Domain Service
         const transactionId = await container.transactionService.execute({
@@ -92,7 +102,7 @@ export async function createTransaction(prevState: any, input: FormData | any) {
     const session = await getServerSession(authOptions)
     if (!session?.user?.householdId) return { error: "Not authenticated" }
 
-    let amount, date, description, categoryId, accountId, type;
+    let amount, date, description, categoryId, accountId, type, bucket;
 
     // Support both useActionState (prevState, formData) and direct calls (dataObject)
     let actualData = input;
@@ -108,6 +118,7 @@ export async function createTransaction(prevState: any, input: FormData | any) {
         categoryId = actualData.get("categoryId") as string
         accountId = actualData.get("accountId") as string
         type = (actualData.get("type") as string) || 'EXPENSE'
+        bucket = (actualData.get("bucket") as string) || 'VARIABLE_ALLOCATION'
     } else {
         // Fallback for cases where it's called with a plain object as the 2nd arg
         const data = actualData;
@@ -117,10 +128,25 @@ export async function createTransaction(prevState: any, input: FormData | any) {
         categoryId = data.categoryId
         accountId = data.accountId
         type = data.type || 'EXPENSE'
+        bucket = data.bucket || 'VARIABLE_ALLOCATION'
+    }
+
+    if (bucket !== "CAPITAL_INFLOW" && bucket !== "FIXED_OBLIGATION" && bucket !== "VARIABLE_ALLOCATION") {
+        return { error: "Invalid bucket. Must be CAPITAL_INFLOW, FIXED_OBLIGATION, or VARIABLE_ALLOCATION" }
     }
 
     const recurringFlowId = actualData instanceof FormData ? (actualData.get("recurringFlowId") as string) : (actualData as any).recurringFlowId
     const finalCategoryId = actualData instanceof FormData ? (actualData.get("categoryId") as string) : (actualData as any).categoryId
+
+    // Ensure account belongs to household
+    if (accountId) {
+        const account = await prisma.account.findUnique({
+            where: { id: accountId }
+        })
+        if (!account || account.householdId !== session.user.householdId) {
+            return { error: "Unauthorized: Account belongs to another household" }
+        }
+    }
 
     try {
         // Use Domain Service for Atomic Execution & Ledgering
@@ -133,8 +159,9 @@ export async function createTransaction(prevState: any, input: FormData | any) {
             userId: session.user.id,
             accountId,
             categoryId: finalCategoryId || undefined,
-            recurringFlowId: recurringFlowId || undefined
-        })
+            recurringFlowId: recurringFlowId || undefined,
+            bucket: bucket as any
+        } as any)
 
         revalidatePath("/")
         revalidatePath("/plan")
