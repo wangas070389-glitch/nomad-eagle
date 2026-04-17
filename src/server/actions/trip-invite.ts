@@ -43,41 +43,52 @@ export async function joinTrip(token: string) {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) return { error: "Not authenticated" }
 
-    // Validate Token
-    const invite = await prisma.tripInvite.findUnique({
-        where: { token },
-        include: { trip: true }
-    })
-
-    if (!invite) return { error: "Invalid invite link." }
-    if (invite.status !== "PENDING") return { error: "This invite has already been used or expired." }
-    if (new Date() > invite.expiresAt) {
-        await prisma.tripInvite.update({ where: { id: invite.id }, data: { status: "EXPIRED" } })
-        return { error: "Invite expired." }
-    }
-
-    // Check if user is already a member
-    const existingMember = await prisma.tripMember.findUnique({
-        where: { tripId_userId: { tripId: invite.tripId, userId: session.user.id } }
-    })
-
-    if (existingMember) {
-        // Already joined
-        return { success: true, tripId: invite.tripId }
-    }
-
     try {
-        // Add User to Trip
-        await prisma.tripMember.create({
-            data: {
-                tripId: invite.tripId,
-                userId: session.user.id,
-                role: "GUEST"
+        const result = await prisma.$transaction(async (tx) => {
+            // Re-fetch and validate the invite inside the transaction
+            const invite = await tx.tripInvite.findUnique({
+                where: { token },
+                include: { trip: true }
+            })
+
+            if (!invite) return { error: "Invalid invite link." }
+            if (invite.status !== "PENDING") return { error: "This invite has already been used or expired." }
+            if (new Date() > invite.expiresAt) {
+                await tx.tripInvite.update({ where: { id: invite.id }, data: { status: "EXPIRED" } })
+                return { error: "Invite expired." }
             }
+
+            // Check if user is already a member
+            const existingMember = await tx.tripMember.findUnique({
+                where: { tripId_userId: { tripId: invite.tripId, userId: session.user.id } }
+            })
+
+            if (existingMember) {
+                // Already joined, but if they used the token, we shouldn't necessarily burn it unless we want to.
+                // However, the token is not consumed if they were already a member. Let's just return success.
+                return { success: true, tripId: invite.tripId }
+            }
+
+            // Add User to Trip
+            await tx.tripMember.create({
+                data: {
+                    tripId: invite.tripId,
+                    userId: session.user.id,
+                    role: "GUEST"
+                }
+            })
+
+            // Invalidate the invite token by changing status to ACCEPTED
+            await tx.tripInvite.update({
+                where: { id: invite.id },
+                data: { status: "ACCEPTED" }
+            })
+
+            return { success: true, tripId: invite.tripId }
         })
 
-        return { success: true, tripId: invite.tripId }
-    } catch (e) {
+        return result
+    } catch (e: any) {
         return { error: "Failed to join trip." }
     }
 }
