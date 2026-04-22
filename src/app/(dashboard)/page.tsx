@@ -50,6 +50,12 @@ export default async function DashboardPage() {
         )
     }
 
+    // Resilient data fetching: each call is wrapped so a single failure
+    // (DB timeout, cold-start, schema drift) doesn't crash the entire dashboard.
+    async function safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
+        try { return await fn() } catch (e) { console.error("[Dashboard] Data fetch failed:", e); return fallback }
+    }
+
     const [
         accounts,
         categories,
@@ -59,21 +65,14 @@ export default async function DashboardPage() {
         householdMembers,
         cashFlow
     ] = await Promise.all([
-        getAccounts(),
-        getCategories(),
-        getPlannerCategories(),
-        getTransactions(1, 5),
-        getPortfolioSummary(),
-        getHouseholdMembers(),
-        getDetailedCashFlow()
+        safe(getAccounts, []),
+        safe(getCategories, []),
+        safe(getPlannerCategories, []),
+        safe(() => getTransactions(1, 5), []),
+        safe(getPortfolioSummary, { totalValueMXN: 0, positions: [], exchangeRate: 1 }),
+        safe(getHouseholdMembers, []),
+        safe(getDetailedCashFlow, { error: "Failed to load cash flow" } as { error: string })
     ])
-
-    // Handle potential error from getDetailedCashFlow
-    if ("error" in cashFlow) {
-        // Fallback or handle error - for now, we'll let the chart handle null/loading or we pass null
-        // But wait, the chart expects DetailedCashFlow or null. DetailedCashFlow | { error: string } is the return type.
-        // Let's cast or check.
-    }
 
     const accountOptions = accounts.map(a => ({
         id: a.id,

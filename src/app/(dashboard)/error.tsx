@@ -46,11 +46,10 @@ export default function Error({
                             Return Home
                         </Button>
                     </div>
-                    {process.env.NODE_ENV === "development" && (
-                        <div className="mt-4 p-2 bg-red-100 rounded text-xs text-left font-mono overflow-auto max-h-32">
-                            {error.message}
-                        </div>
-                    )}
+                    <div className="mt-4 p-2 bg-red-100 rounded text-xs text-left font-mono overflow-auto max-h-32">
+                        <p className="font-bold mb-1">Digest: {error.digest || "N/A"}</p>
+                        <p>{error.message?.slice(0, 200)}</p>
+                    </div>
                 </CardContent>
             </Card>
         </div>
