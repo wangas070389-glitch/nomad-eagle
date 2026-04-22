@@ -128,17 +128,28 @@ export const authOptions: NextAuthOptions = {
                 session.user.id = token.sub;
 
                 // Fetch basic user profile fields for session
-                const user = await prisma.user.findUnique({ where: { id: token.sub } });
+                // Wrapped in try/catch: if DB is momentarily unreachable,
+                // fall back to JWT-only data so the page still renders.
+                try {
+                    const user = await prisma.user.findUnique({ where: { id: token.sub } });
 
-                session.user.householdId = user?.householdId || null;
-                session.user.displayName = user?.displayName || null;
-                session.user.avatarUrl = user?.avatarUrl || null;
-                session.user.currency = user?.currency || "MXN";
+                    session.user.householdId = user?.householdId || null;
+                    session.user.displayName = user?.displayName || null;
+                    session.user.avatarUrl = user?.avatarUrl || null;
+                    session.user.currency = user?.currency || "MXN";
 
-                // Ghost Protocol: Bridge JWT data to Session (Priority)
-                // This ensures we don't rely on the DB fetch for critical role access if the schema is cached stale
-                session.user.role = (token.role as string) || (user?.role as string) || "USER";
-                session.user.status = (token.status as string) || (user?.status as string) || "PENDING";
+                    // Ghost Protocol: Bridge JWT data to Session (Priority)
+                    session.user.role = (token.role as string) || (user?.role as string) || "USER";
+                    session.user.status = (token.status as string) || (user?.status as string) || "PENDING";
+                } catch (e) {
+                    console.error("[Auth] Session DB fetch failed, using JWT fallback:", e);
+                    session.user.householdId = (token as any).householdId || null;
+                    session.user.displayName = null;
+                    session.user.avatarUrl = null;
+                    session.user.currency = "MXN";
+                    session.user.role = (token.role as string) || "USER";
+                    session.user.status = (token.status as string) || "PENDING";
+                }
             }
             return session;
         },
